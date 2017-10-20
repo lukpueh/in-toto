@@ -39,9 +39,9 @@ import securesystemslib.exceptions
 import in_toto.settings
 import in_toto.util
 import in_toto.runlib
-import in_toto.models.layout
-import in_toto.models.link
-from in_toto.models.link import (UNFINISHED_FILENAME_FORMAT, FILENAME_FORMAT)
+from in_toto.models.metadata import Metadata
+from in_toto.models.link import (Link, FILENAME_FORMAT_UNFINISHED,
+    FILENAME_FORMAT, FILENAME_FORMAT_SHORT)
 from in_toto.exceptions import (RuleVerficationError, LayoutExpiredError,
     ThresholdVerificationError, BadReturnValueError)
 import in_toto.artifact_rules
@@ -84,6 +84,67 @@ def _raise_on_bad_retval(return_value, command=None):
 
   if return_value != 0:
     raise BadReturnValueError(msg.format(what="zero"))
+
+
+
+def load_links_for_layout(layout):
+  """
+  <Purpose>
+    Try to load all existing metadata files for each Step of the Layout
+    from the current directory.
+
+    For each step the metadata might consist of multiple (thresholds) Link
+    or Layout (sub-layouts) files.
+
+  <Arguments>
+    layout
+          Layout object
+
+  <Side Effects>
+    Calls functions to read files from disk
+
+  <Returns>
+    A dictionary carrying all the found metadata corresponding to the
+    passed layout, e.g.:
+
+    {
+      <step name> : {
+        <functionary key id> : <Metadata object carrying a Link or Layout>,
+        ...
+      }, ...
+    }
+
+
+  """
+  steps_metadata = {}
+
+  # Iterate over all the steps in the layout
+  for step in layout.steps:
+    links_per_step = {}
+
+    # We try to load a link for every authorized functionary, but don't fail
+    # if the file does not exist (authorized != required)
+    # FIXME: Should we really pass on IOError, or just skip inexistent links
+    for keyid in step.pubkeys:
+      filename = FILENAME_FORMAT.format(step_name=step.name, keyid=keyid)
+
+      try:
+        metadata = Metadata.load(filename)
+        links_per_step[keyid] = metadata
+
+      except IOError as e:
+        pass
+
+    # Check if the step has been performed by enough number of functionaries
+    if len(links_per_step) < step.threshold:
+      raise in_toto.exceptions.LinkNotFoundError("Step '{0}' requires '{1}'"
+          " link metadata file(s), found '{2}'."
+          .format(step.name, step.threshold, len(links_per_step)))
+
+    steps_metadata[step.name] = links_per_step
+
+  return steps_metadata
+
 
 
 def run_all_inspections(layout):
@@ -129,13 +190,14 @@ def run_all_inspections(layout):
     link = in_toto.runlib.in_toto_run(inspection.name, material_list,
         product_list, inspection.run)
 
-    _raise_on_bad_retval(link.byproducts.get("return-value"), inspection.run)
+    _raise_on_bad_retval(link.signed.byproducts.get("return-value"), inspection.run)
 
     inspection_links_dict[inspection.name] = link
 
     # Dump the inspection link file for auditing
     # Keep in mind that this pollutes the verifier's (client's) filesystem.
-    link.dump()
+    filename = FILENAME_FORMAT_SHORT.format(step_name=inspection.name)
+    link.dump(filename)
 
     in_toto.settings.ARTIFACT_BASE_PATH = base_path_backup
 
@@ -174,7 +236,8 @@ def verify_layout_signatures(layout, keys_dict):
 
   <Arguments>
     layout:
-            A Layout object whose signatures are verified.
+            A Metadata object (layout) whose signatures are verified.
+
     keys_dict:
             A dictionary of keys to verify the signatures conformant with
             securesystemslib.formats.KEYDICT_SCHEMA.
@@ -199,7 +262,7 @@ def verify_link_signatures(link, keys_dict):
 
   <Arguments>
     link:
-            A Link object whose signatures are verified.
+            A Metadata object (link) whose signatures are verified.
     keys_dict:
             A dictionary of keys to verify the signatures conformant with
             securesystemslib.formats.KEYDICT_SCHEMA.
@@ -226,9 +289,10 @@ def verify_all_steps_signatures(layout, chain_link_dict):
   <Arguments>
     layout:
             A Layout object whose Steps are extracted and verified.
+
     chain_link_dict:
             A dictionary with Link names as keys and a dict
-            (key_id Link objects) as values.
+            (key_id Metadata (link) objects) as values.
 
   <Exceptions>
     Raises an exception if a needed key can not be found in the passed
@@ -257,7 +321,7 @@ def verify_all_steps_signatures(layout, chain_link_dict):
         raise AuthorizationError("Unauthorized Key! '{0}'".format(keyid))
 
       log.info("Verifying signature(s) for '{0}'...".format(
-          in_toto.models.link.FILENAME_FORMAT.format(step_name=step.name,
+          FILENAME_FORMAT.format(step_name=step.name,
               keyid=keyid)))
 
       # Verify link metadata file's signatures
@@ -327,10 +391,9 @@ def verify_all_steps_command_alignment(layout, chain_link_dict):
     # providing that we verify command alignment AFTER threshold equality
     for keyid, link in six.iteritems(key_link_dict):
       log.info("Verifying command alignment for '{0}'...".format(
-          in_toto.models.link.FILENAME_FORMAT.format(step_name=step.name,
-              keyid=keyid)))
+          FILENAME_FORMAT.format(step_name=step.name, keyid=keyid)))
 
-      command = link.command
+      command = link.signed.command
       verify_command_alignment(command, expected_command)
 
 
@@ -439,9 +502,9 @@ def verify_match_rule(rule, source_artifacts_queue, source_artifacts, links):
 
   # Extract destination artifacts from destination link
   if dest_type.lower() == "materials":
-    dest_artifacts = dest_link.materials
+    dest_artifacts = dest_link.signed.materials
   elif dest_type.lower() == "products":
-    dest_artifacts = dest_link.products
+    dest_artifacts = dest_link.signed.products
 
   # Filter I - take only queued paths with specified prefix and
   # subtract prefix
@@ -815,8 +878,8 @@ def verify_item_rules(source_name, source_type, rules, links):
 
   """
 
-  source_materials = links[source_name].materials
-  source_products = links[source_name].products
+  source_materials = links[source_name].signed.materials
+  source_products = links[source_name].signed.products
 
   source_materials_queue = source_materials.keys()
   source_products_queue = source_products.keys()
@@ -916,8 +979,6 @@ def verify_all_item_rules(items, links):
   """
 
   for item in items:
-
-    link = links[item.name]
     log.info("Verifying material rules for '{}'...".format(item.name))
     verify_item_rules(item.name, "materials", item.expected_materials, links)
 
@@ -982,14 +1043,12 @@ def verify_threshold_constraints(layout, chain_link_dict):
     for keyid, link in six.iteritems(key_link_dict):
 
       # compare their properties
-      if (reference_link.materials != link.materials or
-          reference_link.products != link.products):
+      if (reference_link.signed.materials != link.signed.materials or
+          reference_link.signed.products != link.signed.products):
         raise ThresholdVerificationError("Links '{0}' and '{1}' have different"
             " artifacts!".format(
-                in_toto.models.link.FILENAME_FORMAT.format(
-                    step_name=step.name, keyid=reference_keyid),
-                in_toto.models.link.FILENAME_FORMAT.format(
-                    step_name=step.name, keyid=keyid)))
+                FILENAME_FORMAT.format(step_name=step.name, keyid=reference_keyid),
+                FILENAME_FORMAT.format(step_name=step.name, keyid=keyid)))
 
 
 def reduce_chain_links(chain_link_dict):
@@ -1113,22 +1172,22 @@ def get_summary_link(layout, reduced_chain_link_dict):
   """
 
   # Create empty link object
-  summary_link = in_toto.models.link.Link()
+  summary_link = Link()
 
   # Take first and last link in the order the corresponding
   # steps appear in the layout
   first_step_link = reduced_chain_link_dict[layout.steps[0].name]
   last_step_link = reduced_chain_link_dict[layout.steps[-1].name]
 
-  summary_link.materials = first_step_link.materials
-  summary_link._type = first_step_link._type
-  summary_link.name = first_step_link.name
+  summary_link.materials = first_step_link.signed.materials
+  summary_link._type = first_step_link.signed._type
+  summary_link.name = first_step_link.signed.name
 
-  summary_link.products = last_step_link.products
-  summary_link.byproducts = last_step_link.byproducts
-  summary_link.command = last_step_link.command
+  summary_link.products = last_step_link.signed.products
+  summary_link.byproducts = last_step_link.signed.byproducts
+  summary_link.command = last_step_link.signed.command
 
-  return summary_link
+  return Metadata(signed=summary_link)
 
 def in_toto_verify(layout, layout_key_dict):
   """
@@ -1177,7 +1236,7 @@ def in_toto_verify(layout, layout_key_dict):
 
   <Arguments>
     layout:
-            Layout object that is being verified.
+            Metadata object that contains a layout that is being verified.
 
     layout_key_dict:
             Dictionary of project owner public keys, used to verify the
@@ -1193,15 +1252,19 @@ def in_toto_verify(layout, layout_key_dict):
     A link which summarizes the materials and products of the overall
     software supply chain (used by super-layout verification if any)
   """
-
   log.info("Verifying layout signatures...")
   verify_layout_signatures(layout, layout_key_dict)
+
+  # For the rest of the verification we only care about the layout payload
+  # that carries all the information and not about the layout_container
+  # that also carries the signatures
+  layout = layout.signed
 
   log.info("Verifying layout expiration...")
   verify_layout_expiration(layout)
 
   log.info("Reading link metadata files...")
-  chain_link_dict = layout.import_step_metadata_from_files_as_dict()
+  chain_link_dict = load_links_for_layout(layout)
 
   log.info("Verifying link metadata signatures...")
   verify_all_steps_signatures(layout, chain_link_dict)
