@@ -25,10 +25,9 @@ import logging
 import argparse
 import shutil
 import tempfile
-from mock import patch
+import mock
 
-from in_toto.in_toto_mock import main as in_toto_mock_main
-from in_toto.in_toto_mock import in_toto_mock
+import in_toto.in_toto_mock as in_toto_mock
 
 # Suppress all the user feedback that we print using a base logger
 logging.getLogger().setLevel(logging.CRITICAL)
@@ -68,8 +67,8 @@ class TestInTotoMockTool(unittest.TestCase):
     """Test CLI command with required arguments. """
 
     args = [ "in_toto_mock.py", "--name", self.test_step, "--", "echo", "test"]
-    with patch.object(sys, 'argv', args):
-      in_toto_mock_main()
+    with mock.patch.object(sys, 'argv', args):
+      in_toto_mock.main()
 
     self.assertTrue(os.path.exists(self.test_link))
 
@@ -82,20 +81,20 @@ class TestInTotoMockTool(unittest.TestCase):
       ["in_toto_mock.py", "--", "echo", "blub"]]
 
     for wrong_args in wrong_args_list:
-      with patch.object(sys, 'argv', wrong_args), self.assertRaises(SystemExit):
-        in_toto_mock_main()
+      with mock.patch.object(sys, 'argv', wrong_args), self.assertRaises(SystemExit):
+        in_toto_mock.main()
       self.assertFalse(os.path.exists(self.test_link))
 
   def test_successful_in_toto_mock(self):
     """Call in_toto_mock successfully """
-    in_toto_mock(self.test_step, ["echo", "test"])
+    in_toto_mock.in_toto_mock(self.test_step, ["echo", "test"])
 
     self.assertTrue(os.path.exists(self.test_link))
 
   def test_in_toto_run_bad_command_exit(self):
     """Error exit in_toto_mock for bad command. """
     with self.assertRaises(SystemExit):
-      in_toto_mock(self.test_step, ["exit", "1"])
+      in_toto_mock.in_toto_mock(self.test_step, ["exit", "1"])
 
 if __name__ == "__main__":
   unittest.main(buffer=True)

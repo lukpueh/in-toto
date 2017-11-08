@@ -18,7 +18,7 @@
 """
 
 import unittest
-from in_toto.models.layout import Layout, Inspection
+import in_toto.models.layout as layout
 import securesystemslib.exceptions
 
 class TestInspectionValidator(unittest.TestCase):
@@ -26,7 +26,7 @@ class TestInspectionValidator(unittest.TestCase):
 
   def setUp(self):
     """Populate a base layout that we can use."""
-    self.inspection = Inspection(name="some-inspection")
+    self.inspection = layout.Inspection(name="some-inspection")
 
   def test_wrong_type(self):
     """Test the type field within Validate()."""

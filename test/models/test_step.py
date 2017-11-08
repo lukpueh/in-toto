@@ -19,16 +19,19 @@
 
 import unittest
 import datetime
-from in_toto.models.layout import Step
+
 import securesystemslib.keys
 import securesystemslib.exceptions
+
+import in_toto.models.layout as layout
+
 
 class TestStepValidator(unittest.TestCase):
   """Test verifylib.verify_delete_rule(rule, artifact_queue) """
 
   def setUp(self):
     """Populate a base layout that we can use."""
-    self.step = Step(name="this-step")
+    self.step = layout.Step(name="this-step")
 
   def test_wrong_type(self):
     """Test the type field within Validate()."""

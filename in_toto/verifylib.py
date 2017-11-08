@@ -26,20 +26,16 @@ import datetime
 import iso8601
 import fnmatch
 import six
-from dateutil import tz
+import dateutil.tz
 
 import securesystemslib.exceptions
 
 import in_toto.settings
 import in_toto.util
 import in_toto.runlib
-import in_toto.models.layout
-import in_toto.models.link
-from in_toto.models.metadata import Metablock
-from in_toto.models.link import (UNFINISHED_FILENAME_FORMAT, FILENAME_FORMAT,
-    FILENAME_FORMAT_SHORT)
-from in_toto.exceptions import (RuleVerficationError, LayoutExpiredError,
-    ThresholdVerificationError, BadReturnValueError)
+import in_toto.models.metadata as metadata
+import in_toto.models.link as link
+import in_toto.exceptions as exceptions
 import in_toto.artifact_rules
 import in_toto.log as log
 
@@ -73,13 +69,13 @@ def _raise_on_bad_retval(return_value, command=None):
     msg = "{0}.".format(msg)
 
   if not isinstance(return_value, int):
-    raise BadReturnValueError(msg.format(what="int"))
+    raise exceptions.BadReturnValueError(msg.format(what="int"))
 
   # TODO: in-toto specification suggests special behavior on
   # return_value == 127, but does not fully define that behavior yet
 
   if return_value != 0:
-    raise BadReturnValueError(msg.format(what="zero"))
+    raise exceptions.BadReturnValueError(msg.format(what="zero"))
 
 
 def load_links_for_layout(layout):
@@ -121,10 +117,10 @@ def load_links_for_layout(layout):
     # if the file does not exist (authorized != required)
     # FIXME: Should we really pass on IOError, or just skip inexistent links
     for keyid in step.pubkeys:
-      filename = FILENAME_FORMAT.format(step_name=step.name, keyid=keyid)
+      filename = link.FILENAME_FORMAT.format(step_name=step.name, keyid=keyid)
 
       try:
-        metadata = Metablock.load(filename)
+        metadata = metadata.Metablock.load(filename)
         links_per_step[keyid] = metadata
 
       except IOError as e:
@@ -194,7 +190,7 @@ def run_all_inspections(layout):
 
     # Dump the inspection link file for auditing
     # Keep in mind that this pollutes the verifier's (client's) filesystem.
-    filename = FILENAME_FORMAT_SHORT.format(step_name=inspection.name)
+    filename = link.FILENAME_FORMAT_SHORT.format(step_name=inspection.name)
     link.dump(filename)
 
     in_toto.settings.ARTIFACT_BASE_PATH = base_path_backup
@@ -222,8 +218,8 @@ def verify_layout_expiration(layout):
 
   """
   expire_datetime = iso8601.parse_date(layout.expires)
-  if expire_datetime < datetime.datetime.now(tz.tzutc()):
-    raise LayoutExpiredError("Layout expired")
+  if expire_datetime < datetime.datetime.now(dateutil.tz.tzutc()):
+    raise exceptions.LayoutExpiredError("Layout expired")
 
 
 def verify_layout_signatures(layout, keys_dict):
@@ -323,8 +319,7 @@ def verify_all_steps_signatures(layout, chain_link_dict):
         raise AuthorizationError("Unauthorized Key! '{0}'".format(keyid))
 
       log.info("Verifying signature(s) for '{0}'...".format(
-          in_toto.models.link.FILENAME_FORMAT.format(step_name=step.name,
-              keyid=keyid)))
+          link.FILENAME_FORMAT.format(step_name=step.name, keyid=keyid)))
 
       # Verify link metadata file's signatures
       verify_link_signatures(link, keys_dict)
@@ -401,7 +396,7 @@ def verify_all_steps_command_alignment(layout, chain_link_dict):
     # providing that we verify command alignment AFTER threshold equality
     for keyid, link in six.iteritems(key_link_dict):
       log.info("Verifying command alignment for '{0}'...".format(
-          in_toto.models.link.FILENAME_FORMAT.format(step_name=step.name,
+          link.FILENAME_FORMAT.format(step_name=step.name,
               keyid=keyid)))
 
       command = link.signed.command
@@ -509,7 +504,7 @@ def verify_match_rule(rule, source_artifacts_queue, source_artifacts, links):
   try:
     dest_link = links[dest_name]
   except Exception as e:
-    raise RuleVerficationError("Rule '{rule}' failed, destination link"
+    raise exceptions.RuleVerficationError("Rule '{rule}' failed, destination link"
         " '{dest_link}' not found in link dictionary".format(
             rule=" ".join(rule), dest_link=dest_name))
 
@@ -562,7 +557,7 @@ def verify_match_rule(rule, source_artifacts_queue, source_artifacts, links):
     try:
       dest_artifact = dest_artifacts[full_dest_path]
     except Exception:
-      raise RuleVerficationError("Rule '{rule}' failed, destination artifact"
+      raise exceptions.RuleVerficationError("Rule '{rule}' failed, destination artifact"
           " '{path}' not found in {type} of '{name}'"
               .format(rule=" ".join(rule), path=full_dest_path, name=dest_name,
                   type=dest_type))
@@ -632,7 +627,7 @@ def verify_create_rule(rule, source_materials_queue, source_products_queue):
 
   for matched_product in matched_products:
     if matched_product in source_materials_queue:
-      raise RuleVerficationError("Rule '{0}' failed, product '{1}' was found"
+      raise exceptions.RuleVerficationError("Rule '{0}' failed, product '{1}' was found"
           " in materials but should have been newly created."
               .format(" ".join(rule), matched_product))
 
@@ -689,7 +684,7 @@ def verify_delete_rule(rule, source_materials_queue, source_products_queue):
 
   for matched_material in matched_materials:
     if matched_material in source_products_queue:
-      raise RuleVerficationError("Rule '{0}' failed, material '{1}' was found"
+      raise exceptions.RuleVerficationError("Rule '{0}' failed, material '{1}' was found"
           " in products but should have been deleted."
               .format(" ".join(rule), matched_material))
 
@@ -749,13 +744,13 @@ def verify_modify_rule(rule, source_materials_queue, source_products_queue,
   matched_products_only =  matched_products - matched_materials
 
   if len(matched_materials_only):
-    raise RuleVerficationError("Rule '{0}' failed, the following paths appear"
-        " as materials but not as products:\n\t{1}"
+    raise exceptions.RuleVerficationError("Rule '{0}' failed, the following"
+        " paths appear as materials but not as products:\n\t{1}"
             .format(" ".join(rule), ", ".join(matched_materials_only)))
 
   if len(matched_products_only):
-    raise RuleVerficationError("Rule '{0}' failed, the following paths appear"
-        " as products but not as materials:\n\t{1}"
+    raise exceptions.RuleVerficationError("Rule '{0}' failed, the following"
+        " paths appear as products but not as materials:\n\t{1}"
             .format(" ".join(rule), ", ".join(matched_products_only)))
 
   # If we haven't failed yet the two sets are equal and we can test their
@@ -764,8 +759,8 @@ def verify_modify_rule(rule, source_materials_queue, source_products_queue,
     # Is it okay to assume that path returns an artifact? The path
     # should not be in the queues, if it is not in the artifact dictionaries
     if source_materials[path] == source_products[path]:
-      raise RuleVerficationError("Rule '{0}' failed, material and product '{1}'"
-          " have the same hash (were not modified)."
+      raise exceptions.RuleVerficationError("Rule '{0}' failed, material and"
+          " product '{1}' have the same hash (were not modified)."
               .format(" ".join(rule), path))
 
   return (list(set(source_materials_queue) - set(matched_materials)),
@@ -840,8 +835,8 @@ def verify_disallow_rule(rule, source_artifacts_queue):
       source_artifacts_queue, rule_data["pattern"])
 
   if len(matched_artifacts):
-    raise RuleVerficationError("Rule '{0}' failed, pattern matched disallowed"
-        " artifacts: '{1}' ".format(" ".join(rule), matched_artifacts))
+    raise exceptions.RuleVerficationError("Rule '{0}' failed, pattern matched"
+        "disallowed artifacts: '{1}' ".format(" ".join(rule), matched_artifacts))
 
 
 def verify_item_rules(source_name, source_type, rules, links):
@@ -1056,7 +1051,7 @@ def verify_threshold_constraints(layout, chain_link_dict):
 
     # Check if we have at least <threshold> links for this step
     if len(key_link_dict) < step.threshold:
-      raise ThresholdVerificationError("Step '{0}' not performed"
+      raise exceptions.ThresholdVerificationError("Step '{0}' not performed"
           " by enough functionaries!".format(step.name))
 
     # Take a reference link (e.g. the first in the step_link_dict)
@@ -1069,11 +1064,11 @@ def verify_threshold_constraints(layout, chain_link_dict):
       # compare their properties
       if (reference_link.signed.materials != link.signed.materials or
           reference_link.signed.products != link.signed.products):
-        raise ThresholdVerificationError("Links '{0}' and '{1}' have different"
-            " artifacts!".format(
-                in_toto.models.link.FILENAME_FORMAT.format(
+        raise exceptions.ThresholdVerificationError("Links '{0}' and '{1}'"
+            " have different artifacts!".format(
+                link.FILENAME_FORMAT.format(
                     step_name=step.name, keyid=reference_keyid),
-                in_toto.models.link.FILENAME_FORMAT.format(
+                link.FILENAME_FORMAT.format(
                     step_name=step.name, keyid=keyid)))
 
 
@@ -1222,7 +1217,7 @@ def get_summary_link(layout, reduced_chain_link_dict):
   """
 
   # Create empty link object
-  summary_link = in_toto.models.link.Link()
+  summary_link = link.Link()
 
   # Take first and last link in the order the corresponding
   # steps appear in the layout
@@ -1237,7 +1232,7 @@ def get_summary_link(layout, reduced_chain_link_dict):
   summary_link.byproducts = last_step_link.signed.byproducts
   summary_link.command = last_step_link.signed.command
 
-  return Metablock(signed=summary_link)
+  return metadata.Metablock(signed=summary_link)
 
 def in_toto_verify(layout, layout_key_dict):
   """

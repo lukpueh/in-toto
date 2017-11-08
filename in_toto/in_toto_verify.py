@@ -30,8 +30,8 @@ import argparse
 import in_toto.user_settings
 import in_toto.log as log
 import in_toto.util
-from in_toto import verifylib
-from in_toto.models.metadata import Metablock
+import in_toto.verifylib as verifylib
+import in_toto.models.metadata as metadata
 
 def in_toto_verify(layout_path, layout_key_paths):
   """
@@ -62,7 +62,7 @@ def in_toto_verify(layout_path, layout_key_paths):
     log.info("Verifying software supply chain...")
 
     log.info("Reading layout...")
-    layout = Metablock.load(layout_path)
+    layout = metadata.Metablock.load(layout_path)
 
     log.info("Reading layout key(s)...")
     layout_key_dict = in_toto.util.import_rsa_public_keys_from_files_as_dict(

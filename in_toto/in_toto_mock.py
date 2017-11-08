@@ -32,12 +32,13 @@
   ```
 
 """
-
 import os
 import sys
 import argparse
 import in_toto.user_settings
-from in_toto import (util, runlib, log)
+import in_toto.util as util
+import in_toto.runlib as runlib
+import in_toto.log as log
 
 def in_toto_mock(name, link_cmd_args):
   """
@@ -66,6 +67,7 @@ def in_toto_mock(name, link_cmd_args):
     runlib.in_toto_mock(name, link_cmd_args)
   except Exception as e:
     log.error("in toto mock - {}".format(e))
+    raise e
     sys.exit(1)
 
 def main():

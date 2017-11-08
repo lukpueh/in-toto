@@ -33,22 +33,22 @@ import json
 import attr
 import six
 import shlex
+import dateutil.parser
+import dateutil.relativedelta
+import datetime
 
-from datetime import datetime
-from dateutil.relativedelta import relativedelta
-from dateutil.parser import parse
-
-from in_toto.models.link import (UNFINISHED_FILENAME_FORMAT, FILENAME_FORMAT)
-from in_toto.models.common import Signable, ValidationMixin
-import in_toto.artifact_rules
-import in_toto.exceptions
 import securesystemslib.exceptions
 import securesystemslib.formats
+
+import in_toto.models.common as common
+import in_toto.artifact_rules
+import in_toto.exceptions
+
 
 
 
 @attr.s(repr=False, init=False)
-class Layout(Signable):
+class Layout(common.Signable):
   """
   A layout lists the sequence of steps of the software supply chain, and the
   functionaries authorized to perform these steps.
@@ -96,8 +96,9 @@ class Layout(Signable):
     self.readme = kwargs.get("readme", "")
 
     # Assign a default expiration (on month) if not specified
-    self.expires = kwargs.get("expires", (datetime.today() +
-        relativedelta(months=1)).strftime("%Y-%m-%dT%H:%M:%SZ"))
+    self.expires = kwargs.get("expires", (datetime.datetime.today() +
+        dateutil.relativedelta.relativedelta(months=1)
+        ).strftime("%Y-%m-%dT%H:%M:%SZ"))
 
     self.validate()
 
@@ -130,7 +131,7 @@ class Layout(Signable):
   def _validate_expires(self):
     """Private method to verify the expiration field."""
     try:
-      date = parse(self.expires)
+      date = dateutil.parser.parse(self.expires)
       securesystemslib.formats.ISO8601_DATETIME_SCHEMA.check_match(
           self.expires)
     except Exception as e:
@@ -193,7 +194,7 @@ class Layout(Signable):
       names_seen.add(inspection.name)
 
 @attr.s(repr=False, init=False)
-class Step(ValidationMixin):
+class Step(common.ValidationMixin):
   """
   Represents a step of the supply chain performed by a functionary.
   A step relates to a link metadata file generated when the step was
@@ -301,7 +302,7 @@ class Step(ValidationMixin):
 
 
 @attr.s(repr=False, init=False)
-class Inspection(ValidationMixin):
+class Inspection(common.ValidationMixin):
   """
   Represents an inspection which performs a command during layout verification.
 

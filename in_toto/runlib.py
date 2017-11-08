@@ -29,17 +29,17 @@ import os
 import tempfile
 import fnmatch
 
-import in_toto.settings
-import in_toto.exceptions
-from in_toto import log
-from in_toto.models.link import (UNFINISHED_FILENAME_FORMAT, FILENAME_FORMAT,
-    FILENAME_FORMAT_SHORT)
-
 import securesystemslib.formats
 import securesystemslib.hash
 import securesystemslib.exceptions
 
-from in_toto.models.metadata import Metablock
+import in_toto.settings
+import in_toto.exceptions
+import in_toto.log as log
+import in_toto.models.link as link
+
+import in_toto.models.metadata as metadata
+
 
 # POSIX users (Linux, BSD, etc.) are strongly encouraged to
 # install and use the much more recent subprocess32
@@ -317,9 +317,9 @@ def in_toto_mock(name, link_cmd_args):
   link = in_toto_run(name, ["."], ["."], link_cmd_args, key=False,
       record_streams=True)
 
-  link_metadata = Metablock(signed=link)
+  link_metadata = metadata.Metablock(signed=link)
 
-  filename = FILENAME_FORMAT_SHORT.format(step_name=name)
+  filename = link.FILENAME_FORMAT_SHORT.format(step_name=name)
   log.info("Storing unsigned link metadata to '{}.link'...".format(filename))
   link_metadata.dump(filename)
   return link_metadata
@@ -396,13 +396,13 @@ def in_toto_run(name, material_list, product_list,
       materials=materials_dict, products=products_dict, command=link_cmd_args,
       byproducts=byproducts, environment={"workdir": os.getcwd()})
 
-  link_metadata = Metablock(signed=link)
+  link_metadata = metadata.Metablock(signed=link)
 
   if key:
     log.info("Signing link metadata with key '{:.8}...'...".format(key["keyid"]))
     link_metadata.sign(key)
 
-    filename = FILENAME_FORMAT.format(step_name=name, keyid=key["keyid"])
+    filename = link.FILENAME_FORMAT.format(step_name=name, keyid=key["keyid"])
     log.info("Storing link metadata to '{}'...".format(filename))
     link_metadata.dump(filename)
 
@@ -439,7 +439,8 @@ def in_toto_record_start(step_name, key, material_list):
 
   """
 
-  unfinished_fn = UNFINISHED_FILENAME_FORMAT.format(step_name=step_name, keyid=key["keyid"])
+  unfinished_fn = link.UNFINISHED_FILENAME_FORMAT.format(
+      step_name=step_name, keyid=key["keyid"])
   log.info("Start recording '{}'...".format(step_name))
 
   if material_list:
@@ -451,7 +452,7 @@ def in_toto_record_start(step_name, key, material_list):
           materials=materials_dict, products={}, command=[], byproducts={},
           environment={"workdir": os.getcwd()})
 
-  link_metadata = Metablock(signed=link)
+  link_metadata = metadata.Metablock(signed=link)
 
   log.info("Signing link metadata with key '{:.8}...'...".format(key["keyid"]))
   link_metadata.sign(key)
@@ -491,13 +492,13 @@ def in_toto_record_stop(step_name, key, product_list):
     None.
 
   """
-  fn = FILENAME_FORMAT.format(step_name=step_name, keyid=key["keyid"])
-  unfinished_fn = UNFINISHED_FILENAME_FORMAT.format(step_name=step_name, keyid=key["keyid"])
+  fn = link.FILENAME_FORMAT.format(step_name=step_name, keyid=key["keyid"])
+  unfinished_fn = link.UNFINISHED_FILENAME_FORMAT.format(step_name=step_name, keyid=key["keyid"])
   log.info("Stop recording '{}'...".format(step_name))
 
   # Expects an a file with name UNFINISHED_FILENAME_FORMAT in the current dir
   log.info("Loading preliminary link metadata '{}'...".format(unfinished_fn))
-  link_metadata = Metablock.load(unfinished_fn)
+  link_metadata = metadata.Metablock.load(unfinished_fn)
 
   # The file must have been signed by the same key
   log.info("Verifying preliminary link signature...")

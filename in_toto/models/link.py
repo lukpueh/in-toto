@@ -21,7 +21,7 @@
 import attr
 import json
 import securesystemslib.formats
-from in_toto.models.common import Signable
+import in_toto.models.common as common
 
 
 FILENAME_FORMAT = "{step_name}.{keyid:.8}.link"
@@ -30,7 +30,7 @@ UNFINISHED_FILENAME_FORMAT = ".{step_name}.{keyid:.8}.link-unfinished"
 
 
 @attr.s(repr=False, init=False)
-class Link(Signable):
+class Link(common.Signable):
   """
   A link is the metadata representation of a supply chain step performed
   by a functionary.

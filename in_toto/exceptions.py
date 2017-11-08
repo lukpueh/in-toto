@@ -1,34 +1,34 @@
-from securesystemslib.exceptions import Error
+import securesystemslib.exceptions as exceptions
 
-class SignatureVerificationError(Error):
+class SignatureVerificationError(exceptions.Error):
   """Indicates a signature verification Error. """
   pass
 
-class LayoutExpiredError(Error):
+class LayoutExpiredError(exceptions.Error):
   """Indicates that the layout expired. """
   pass
 
-class RuleVerficationError(Error):
+class RuleVerficationError(exceptions.Error):
   """Indicates that artifact rule verification failed. """
   pass
 
-class ThresholdVerificationError(Error):
+class ThresholdVerificationError(exceptions.Error):
   """Indicates that signature threshold verification failed. """
   pass
 
-class BadReturnValueError(Error):
+class BadReturnValueError(exceptions.Error):
   """Indicates that a ran command exited with non-int or non-zero return
   value. """
   pass
 
-class LinkNotFoundError(Error):
+class LinkNotFoundError(exceptions.Error):
   """Indicates that a link file was not found. """
   pass
 
-class AuthorizationError(Error):
+class AuthorizationError(exceptions.Error):
   """Indicates that the link was signed by a non-authorized functionary. """
   pass
 
-class SettingsError(Error):
+class SettingsError(exceptions.Error):
   """Indicates an invalid setting. """
   pass

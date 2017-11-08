@@ -28,12 +28,13 @@
   ```
 
 """
-
 import os
 import sys
 import argparse
 import in_toto.user_settings
-from in_toto import (util, runlib, log)
+import in_toto.util as util
+import in_toto.runlib as runlib
+import in_toto.log as log
 
 def in_toto_run(step_name, material_list, product_list,
     link_cmd_args, key, record_streams):

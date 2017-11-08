@@ -4,11 +4,13 @@ import pickle
 import json
 import getpass
 
-from in_toto import log
 import securesystemslib.formats
 import securesystemslib.hash
 import securesystemslib.keys
 import securesystemslib.exceptions
+
+import in_toto.log as log
+
 
 DEFAULT_RSA_KEY_BITS = 3072
 

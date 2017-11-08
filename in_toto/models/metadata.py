@@ -27,9 +27,9 @@ import securesystemslib.keys
 import securesystemslib.formats
 import securesystemslib.exceptions
 
-from in_toto.models.link import Link
-from in_toto.models.layout import Layout
-from in_toto.exceptions import SignatureVerificationError
+import in_toto.models.link as link
+import in_toto.models.layout as layout
+import in_toto.exceptions as exceptions
 
 @attr.s(repr=False, init=False)
 class Metablock(object):
@@ -110,10 +110,10 @@ class Metablock(object):
     signed_type = signed_data.get("_type")
 
     if signed_type == "link":
-      signed = Link.read(signed_data)
+      signed = link.Link.read(signed_data)
 
     elif signed_type == "layout":
-      signed = Layout.read(signed_data)
+      signed = layout.Layout.read(signed_data)
 
     else:
       raise securesystemslib.exceptions.FormatError("Invalid Metadata format")
@@ -193,15 +193,15 @@ class Metablock(object):
     securesystemslib.formats.KEYDICT_SCHEMA.check_match(keys_dict)
 
     if not self.signatures or len(self.signatures) <= 0:
-      raise SignatureVerificationError("No signatures found")
+      raise expcetions.SignatureVerificationError("No signatures found")
 
     for signature in self.signatures:
       keyid = signature["keyid"]
       try:
         key = keys_dict[keyid]
       except KeyError:
-        raise SignatureVerificationError(
+        raise exceptions.SignatureVerificationError(
             "Signature key not found, key id is '{0}'".format(keyid))
       if not securesystemslib.keys.verify_signature(
           key, signature, repr(self.signed)):
-        raise SignatureVerificationError("Invalid signature")
+        raise exceptions.SignatureVerificationError("Invalid signature")

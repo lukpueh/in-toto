@@ -59,9 +59,11 @@ import sys
 import json
 import argparse
 import in_toto.user_settings
-from in_toto import log, exceptions, util
-from in_toto.models.link import FILENAME_FORMAT
-from in_toto.models.metadata import Metablock
+import in_toto.models.link as link
+import in_toto.models.metadata as metadata
+import in_toto.log as log
+import in_toto.util as util
+import in_toto.exceptions as exceptions
 
 def _sign_and_dump_metadata(metadata, args):
   """
@@ -95,7 +97,7 @@ def _sign_and_dump_metadata(metadata, args):
       out_path = args.output
 
     elif metadata._type == "link":
-      out_path = FILENAME_FORMAT.format(step_name=metadata.signed.name,
+      out_path = link.FILENAME_FORMAT.format(step_name=metadata.signed.name,
           keyid=keyid)
 
     elif metadata._type == "layout":
@@ -165,7 +167,7 @@ def _load_metadata(file_path):
 
   """
   try:
-    return Metablock.load(file_path)
+    return metadata.Metablock.load(file_path)
 
   except Exception as e:
     log.error("The following error occurred while loading the file '{}': "

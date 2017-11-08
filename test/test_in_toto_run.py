@@ -25,11 +25,9 @@ import logging
 import argparse
 import shutil
 import tempfile
-from mock import patch
+import mock
 
-from in_toto.util import (generate_and_write_rsa_keypair,
-    prompt_import_rsa_key_from_file)
-
+import in_toto.util as util
 from in_toto.models.link import Link
 from in_toto.in_toto_run import main as in_toto_run_main
 from in_toto.in_toto_run import in_toto_run
@@ -53,8 +51,8 @@ class TestInTotoRunTool(unittest.TestCase):
     os.chdir(self.test_dir)
 
     self.key_path = "test_key"
-    generate_and_write_rsa_keypair(self.key_path)
-    self.key = prompt_import_rsa_key_from_file(self.key_path)
+    util.generate_and_write_rsa_keypair(self.key_path)
+    self.key = util.prompt_import_rsa_key_from_file(self.key_path)
 
     self.test_step = "test_step"
     self.test_link = FILENAME_FORMAT.format(step_name=self.test_step, keyid=self.key["keyid"])
@@ -78,7 +76,7 @@ class TestInTotoRunTool(unittest.TestCase):
 
     args = [ "in_toto_run.py", "--step-name", self.test_step, "--key",
         self.key_path, "--", "echo", "test"]
-    with patch.object(sys, 'argv', args):
+    with mock.patch.object(sys, 'argv', args):
       in_toto_run_main()
 
     self.assertTrue(os.path.exists(self.test_link))
@@ -90,7 +88,7 @@ class TestInTotoRunTool(unittest.TestCase):
         self.key_path, "--materials", self.test_artifact, "--products",
         self.test_artifact, "--record-streams", "--", "echo", "test"]
 
-    with patch.object(sys, 'argv', args):
+    with mock.patch.object(sys, 'argv', args):
       in_toto_run_main()
 
     self.assertTrue(os.path.exists(self.test_link))
@@ -101,7 +99,7 @@ class TestInTotoRunTool(unittest.TestCase):
     args = [ "in_toto_run.py", "--step-name", self.test_step, "--key",
         self.key_path, "--no-command"]
 
-    with patch.object(sys, 'argv', args):
+    with mock.patch.object(sys, 'argv', args):
       in_toto_run_main()
 
     self.assertTrue(os.path.exists(self.test_link))
@@ -120,7 +118,7 @@ class TestInTotoRunTool(unittest.TestCase):
       ["in_toto_run.py", "--step-name", "test-step", "--key", self.key_path, "--"]]
 
     for wrong_args in wrong_args_list:
-      with patch.object(sys, 'argv', wrong_args), self.assertRaises(SystemExit):
+      with mock.patch.object(sys, 'argv', wrong_args), self.assertRaises(SystemExit):
         in_toto_run_main()
       self.assertFalse(os.path.exists(self.test_link))
 
@@ -130,7 +128,7 @@ class TestInTotoRunTool(unittest.TestCase):
     args = [ "in_toto_run.py", "--step-name", self.test_step, "--key",
        "non-existing-key", "--", "echo", "test"]
 
-    with patch.object(sys, 'argv', args), self.assertRaises(SystemExit):
+    with mock.patch.object(sys, 'argv', args), self.assertRaises(SystemExit):
       in_toto_run_main()
     self.assertFalse(os.path.exists(self.test_link))
 
@@ -143,7 +141,7 @@ class TestInTotoRunTool(unittest.TestCase):
         "--", "echo", "test"]
 
     original_log_level = logging.getLogger().getEffectiveLevel()
-    with patch.object(sys, 'argv', args ):
+    with mock.patch.object(sys, 'argv', args ):
       in_toto_run_main()
     self.assertTrue(os.path.exists(self.test_link))
 

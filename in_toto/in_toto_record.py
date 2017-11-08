@@ -48,8 +48,8 @@ import sys
 import argparse
 import in_toto.util
 import in_toto.user_settings
-from in_toto import runlib
-from in_toto import log
+import in_toto.runlib as runlib
+import in_toto.log as log
 
 def in_toto_record_start(step_name, key, material_list):
   """

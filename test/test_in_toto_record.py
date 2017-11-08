@@ -25,13 +25,11 @@ import logging
 import argparse
 import shutil
 import tempfile
-from mock import patch
+import mock
 
-from in_toto.util import (generate_and_write_rsa_keypair,
-    prompt_import_rsa_key_from_file)
-from in_toto.models.link import Link
-from in_toto.in_toto_record import main as in_toto_record_main
-from in_toto.in_toto_record import in_toto_record_start, in_toto_record_stop
+import in_toto.util as util
+import in_toto.models.link as link
+import in_toto.in_toto_record as in_toto_record
 
 WORKING_DIR = os.getcwd()
 
@@ -51,8 +49,8 @@ class TestInTotoRecordTool(unittest.TestCase):
     os.chdir(self.test_dir)
 
     self.key_path = "test_key"
-    generate_and_write_rsa_keypair(self.key_path)
-    self.key = prompt_import_rsa_key_from_file(self.key_path)
+    util.generate_and_write_rsa_keypair(self.key_path)
+    self.key = util.prompt_import_rsa_key_from_file(self.key_path)
 
     self.test_artifact = "test_artifact"
     open(self.test_artifact, "w").close()
@@ -67,21 +65,21 @@ class TestInTotoRecordTool(unittest.TestCase):
     """Test CLI command record start/stop with required arguments. """
     args = [ "in_toto_record.py", "--step-name", "test-step", "--key",
         self.key_path]
-    with patch.object(sys, 'argv', args + ["start"]):
-      in_toto_record_main()
-    with patch.object(sys, 'argv', args + ["stop"]):
-      in_toto_record_main()
+    with mock.patch.object(sys, 'argv', args + ["start"]):
+      in_toto_record.main()
+    with mock.patch.object(sys, 'argv', args + ["stop"]):
+      in_toto_record.main()
 
   def test_main_optional_args(self):
     """Test CLI command record start/stop with optional arguments. """
     args = [ "in_toto_record.py", "--step-name", "test-step", "--key",
         self.key_path]
-    with patch.object(sys, 'argv', args + ["start", "--materials",
+    with mock.patch.object(sys, 'argv', args + ["start", "--materials",
         self.test_artifact]):
-      in_toto_record_main()
-    with patch.object(sys, 'argv', args + ["stop", "--products",
+      in_toto_record.main()
+    with mock.patch.object(sys, 'argv', args + ["stop", "--products",
         self.test_artifact]):
-      in_toto_record_main()
+      in_toto_record.main()
 
   def test_main_wrong_args(self):
     """Test CLI command record start/stop with missing arguments. """
@@ -97,18 +95,18 @@ class TestInTotoRecordTool(unittest.TestCase):
     ]
 
     for wrong_args in wrong_args_list:
-      with patch.object(sys, 'argv',
+      with mock.patch.object(sys, 'argv',
           wrong_args), self.assertRaises(SystemExit):
-        in_toto_record_main()
+        in_toto_record.main()
 
   def test_main_wrong_key_exits(self):
     """Test CLI command record with wrong key exits and logs error """
     args = [ "in_toto_record.py", "--step-name", "test-step", "--key",
         "non-existing-key", "start"]
-    with patch.object(sys, 'argv',
+    with mock.patch.object(sys, 'argv',
         args), self.assertRaises(
         SystemExit):
-      in_toto_record_main()
+      in_toto_record.main()
 
   def test_main_verbose(self):
     """Log level with verbose flag is lesser/equal than logging.INFO. """
@@ -116,28 +114,32 @@ class TestInTotoRecordTool(unittest.TestCase):
         self.key_path, "--verbose"]
 
     original_log_level = logging.getLogger().getEffectiveLevel()
-    with patch.object(sys, 'argv', args + ["start"]):
-      in_toto_record_main()
-    with patch.object(sys, 'argv', args + ["stop"]):
-      in_toto_record_main()
+    with mock.patch.object(sys, 'argv', args + ["start"]):
+      in_toto_record.main()
+    with mock.patch.object(sys, 'argv', args + ["stop"]):
+      in_toto_record.main()
     self.assertLessEqual(logging.getLogger().getEffectiveLevel(), logging.INFO)
     # Reset log level
     logging.getLogger().setLevel(original_log_level)
 
   def test_in_toto_record_start_stop(self):
     """in_toto_record_start/stop run through. """
-    in_toto_record_start("test-step", self.key, [self.test_artifact])
-    in_toto_record_stop("test-step", self.key, [self.test_artifact])
+    in_toto_record.in_toto_record_start("test-step", self.key,
+        [self.test_artifact])
+    in_toto_record.in_toto_record_stop("test-step", self.key,
+        [self.test_artifact])
 
   def test_in_toto_record_start_bad_key_error_exit(self):
     """Error exit in_toto_record_start with bad key. """
     with self.assertRaises(SystemExit):
-      in_toto_record_start("test-step", "bad-key", [self.test_artifact])
+      in_toto_record.in_toto_record_start("test-step", "bad-key",
+          [self.test_artifact])
 
   def test_in_toto_record_stop_missing_unfinished_link_exit(self):
     """Error exit in_toto_record_stop with missing unfinished link file. """
     with self.assertRaises(SystemExit):
-      in_toto_record_stop("test-step", self.key, [self.test_artifact])
+      in_toto_record.in_toto_record_stop("test-step", self.key,
+          [self.test_artifact])
 
 
 if __name__ == '__main__':

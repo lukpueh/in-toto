@@ -18,16 +18,12 @@ import logging
 import argparse
 import shutil
 import tempfile
-from mock import patch
-from in_toto.in_toto_keygen import main as in_toto_keygen_main
-from in_toto.util import (generate_and_write_rsa_keypair,
-    prompt_generate_and_write_rsa_keypair, prompt_password,
-    import_rsa_key_from_file, import_rsa_public_keys_from_files_as_dict,
-    prompt_import_rsa_key_from_file)
-from in_toto import log
-from in_toto import exceptions
+import mock
 import securesystemslib
-from securesystemslib.keys import generate_rsa_key
+import in_toto.in_toto_keygen as in_toto_keygen
+import in_toto.util as util
+import in_toto.log as log
+import in_toto.exceptions as exceptions
 
 WORKING_DIR = os.getcwd()
 
@@ -55,23 +51,23 @@ class TestInTotoKeyGenTool(unittest.TestCase):
     """Test in-toto-keygen CLI tool with required arguments. """
     args = ["in_toto_keygen.py"]
 
-    with patch.object(sys, 'argv', args + ["bob"]), \
+    with mock.patch.object(sys, 'argv', args + ["bob"]), \
       self.assertRaises(SystemExit):
-      in_toto_keygen_main()
+      in_toto_keygen.main()
 
 
   def test_main_optional_args(self):
     """Test CLI command keygen with optional arguments. """
     args = ["in_toto_keygen.py"]
     password = "123456"
-    with patch.object(sys, 'argv', args + ["-p", "bob"]), \
-      patch("getpass.getpass", return_value=password), self.assertRaises(
+    with mock.patch.object(sys, 'argv', args + ["-p", "bob"]), \
+      mock.patch("getpass.getpass", return_value=password), self.assertRaises(
       SystemExit):
-      in_toto_keygen_main()
-    with patch.object(sys, 'argv', args + ["-p", "bob", "3072"]), \
-      patch("getpass.getpass", return_value=password), self.assertRaises(
+      in_toto_keygen.main()
+    with mock.patch.object(sys, 'argv', args + ["-p", "bob", "3072"]), \
+      mock.patch("getpass.getpass", return_value=password), self.assertRaises(
       SystemExit):
-      in_toto_keygen_main()
+      in_toto_keygen.main()
 
 
   def test_main_wrong_args(self):
@@ -83,37 +79,37 @@ class TestInTotoKeyGenTool(unittest.TestCase):
     password="123456"
 
     for wrong_args in wrong_args_list:
-      with patch.object(sys, 'argv', wrong_args), patch("getpass.getpass",
+      with mock.patch.object(sys, 'argv', wrong_args), mock.patch("getpass.getpass",
         return_value=password), self.assertRaises(SystemExit):
-        in_toto_keygen_main()
+        in_toto_keygen.main()
 
   def test_in_toto_keygen_generate_and_write_rsa_keypair(self):
     """in_toto_keygen_generate_and_write_rsa_keypair run through. """
     bits = 3072
-    generate_and_write_rsa_keypair("bob", bits)
+    util.generate_and_write_rsa_keypair("bob", bits)
 
   def test_in_toto_keygen_prompt_generate_and_write_rsa_keypair(self):
     """in_toto_keygen_prompt_generate_and_write_rsa_keypair run through. """
     name = "bob"
     password = "123456"
     bits = 3072
-    with patch("getpass.getpass", return_value=password):
-      prompt_generate_and_write_rsa_keypair(name, bits)
+    with mock.patch("getpass.getpass", return_value=password):
+      util.prompt_generate_and_write_rsa_keypair(name, bits)
 
   def test_prompt_password(self):
     """Call password prompt. """
     password = "123456"
-    with patch("getpass.getpass", return_value=password):
-      self.assertEqual(prompt_password(), password)
+    with mock.patch("getpass.getpass", return_value=password):
+      self.assertEqual(util.prompt_password(), password)
 
   def test_create_and_import_encrypted_rsa(self):
     """Create ecrypted RSA key and import private and public key separately."""
     name = "key_encrypted"
     password = "123456"
     bits= 3072
-    generate_and_write_rsa_keypair(name, bits, password)
-    private_key = import_rsa_key_from_file(name, password)
-    public_key = import_rsa_key_from_file(name + ".pub")
+    util.generate_and_write_rsa_keypair(name, bits, password)
+    private_key = util.import_rsa_key_from_file(name, password)
+    public_key = util.import_rsa_key_from_file(name + ".pub")
 
     securesystemslib.formats.KEY_SCHEMA.check_match(private_key)
     self.assertTrue(private_key["keyval"].get("private"))
@@ -124,9 +120,9 @@ class TestInTotoKeyGenTool(unittest.TestCase):
     name = "key_encrypted_2"
     password = "123456"
     bits = 2048
-    generate_and_write_rsa_keypair(name, bits, password)
-    private_key = import_rsa_key_from_file(name, password)
-    public_key = import_rsa_key_from_file(name + ".pub")
+    util.generate_and_write_rsa_keypair(name, bits, password)
+    private_key = util.import_rsa_key_from_file(name, password)
+    public_key = util.import_rsa_key_from_file(name + ".pub")
 
     securesystemslib.formats.KEY_SCHEMA.check_match(private_key)
     self.assertTrue(private_key["keyval"].get("private"))

@@ -20,19 +20,19 @@
 import os
 import unittest
 import datetime
-from in_toto.models.layout import Layout, Step, Inspection
-from in_toto.models.metadata import Metablock
-import in_toto.models.link
+import securesystemslib.exceptions
+import in_toto.models.layout as layout
+import in_toto.models.metadata as metadata
+import in_toto.models.link as link
 import in_toto.exceptions
 import in_toto.verifylib
-import securesystemslib.exceptions
 
 class TestLayoutValidator(unittest.TestCase):
   """Test verifylib.verify_delete_rule(rule, artifact_queue) """
 
   def setUp(self):
     """Populate a base layout that we can use."""
-    self.layout = Layout()
+    self.layout = layout.Layout()
     self.layout.expires = '2016-11-18T16:44:55Z'
 
   def test_wrong_type(self):
@@ -122,13 +122,13 @@ class TestLayoutValidator(unittest.TestCase):
     with self.assertRaises(securesystemslib.exceptions.FormatError):
       self.layout.validate()
 
-    test_step = Step(name="this-is-a-step")
+    test_step = layout.Step(name="this-is-a-step")
     with self.assertRaises(securesystemslib.exceptions.FormatError):
       test_step.expected_materials = ['this is a malformed step']
       self.layout.steps = [test_step]
       self.layout.validate()
 
-    test_step = Step(name="this-is-a-step")
+    test_step = layout.Step(name="this-is-a-step")
     test_step.expected_materials = [["CREATE", "foo"]]
     test_step.threshold = 1
     self.layout.steps = [test_step]
@@ -141,13 +141,13 @@ class TestLayoutValidator(unittest.TestCase):
     with self.assertRaises(securesystemslib.exceptions.FormatError):
       self.layout.validate()
 
-    test_inspection = Inspection(name="this-is-a-step")
+    test_inspection = layout.Inspection(name="this-is-a-step")
     test_inspection.expected_materials = ['this is a malformed artifact rule']
     self.layout.inspect = [test_inspection]
     with self.assertRaises(securesystemslib.exceptions.FormatError):
       self.layout.validate()
 
-    test_inspection = Inspection(name="this-is-a-step")
+    test_inspection = layout.Inspection(name="this-is-a-step")
     test_inspection.expected_materials = [["CREATE", "foo"]]
     self.layout.inspect = [test_inspection]
     self.layout.validate()
@@ -155,17 +155,17 @@ class TestLayoutValidator(unittest.TestCase):
   def test_repeated_step_names(self):
     """Check that only unique names exist in the steps and inspect lists"""
 
-    self.layout.steps = [Step(name="name"), Step(name="name")]
+    self.layout.steps = [layout.Step(name="name"), layout.Step(name="name")]
     with self.assertRaises(securesystemslib.exceptions.FormatError):
       self.layout.validate()
 
-    self.layout.steps = [Step(name="name")]
-    self.layout.inspect = [Inspection(name="name")]
+    self.layout.steps = [layout.Step(name="name")]
+    self.layout.inspect = [layout.Inspection(name="name")]
     with self.assertRaises(securesystemslib.exceptions.FormatError):
       self.layout.validate()
 
-    self.layout.step = [Step(name="name"), Step(name="othername")]
-    self.layout.inspect = [Inspection(name="thirdname")]
+    self.layout.step = [layout.Step(name="name"), layout.Step(name="othername")]
+    self.layout.inspect = [layout.Inspection(name="thirdname")]
     self.layout.validate()
 
   def test_import_step_metadata_wrong_type(self):
@@ -173,17 +173,17 @@ class TestLayoutValidator(unittest.TestCase):
     name = "name"
 
     # Create and dump a link file with a wrong type
-    link_name = in_toto.models.link.FILENAME_FORMAT.format(
+    link_name = link.FILENAME_FORMAT.format(
         step_name=name, keyid=functionary_key["keyid"])
 
     link_path = os.path.abspath(link_name)
-    link = in_toto.models.link.Link(name=name)
+    link = link.Link(name=name)
     link._type = "wrong-type"
-    metadata = Metablock(signed=link)
+    metadata = metadata.Metablock(signed=link)
     metadata.dump(link_path)
 
     # Add the single step to the test layout and try to read the failing link
-    self.layout.steps.append(Step(
+    self.layout.steps.append(layout.Step(
         name=name, pubkeys=[functionary_key["keyid"]]))
 
     with self.assertRaises(securesystemslib.exceptions.FormatError):
@@ -195,7 +195,7 @@ class TestLayoutValidator(unittest.TestCase):
   def test_step_expected_command_shlex(self):
     """Check that a step's `expected_command` passed as string is converted
     to a list (using `shlex`). """
-    step = Step(**{"expected_command": "rm -rf /"})
+    step = layout.Step(**{"expected_command": "rm -rf /"})
     self.assertTrue(isinstance(step.expected_command, list))
     self.assertTrue(len(step.expected_command) == 3)
 
