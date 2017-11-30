@@ -1,18 +1,25 @@
 language:
-    python
+    generic
 
-python:
-    - "2.7"
+# python:
+#     - "2.7"
 
-env:
-    TOXENV=py27
+# env:
+#     TOXENV=py27
 
-install:
-    - pip install tox
-    - pip install coveralls
+
+before_install:
+  - echo "deb http://us.archive.ubuntu.com/ubuntu/ xenial main" | sudo tee -a /etc/apt/sources.list
+  - sudo apt-get update -qq
+  - sudo apt-get install gnupg2
+
+
+install: true
 
 script:
-    tox
+    - gpg --version
+    - gpg2 --version
+    # tox
 
-after_success:
-    coveralls
+#after_success:
+    #coveralls
