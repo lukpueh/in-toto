@@ -111,12 +111,10 @@ def _sign_and_dump_metadata(metadata, args):
 
     # Alternatively we iterate over passed private key paths `--key KEYPATH ...`
     # load the corresponding key from disk and sign with it
-    elif args.key != None:
+    elif args.key != None: # pragma: no branch
       for key_path in args.key:
         key = util.prompt_import_rsa_key_from_file(key_path)
         signature = metadata.sign(key)
-
-
 
     # If `--output` was specified we store the signed link or layout metadata
     # to that location no matter what
@@ -132,7 +130,7 @@ def _sign_and_dump_metadata(metadata, args):
           keyid=keyid)
 
     # In case of layouts we just override the input file.
-    elif metadata._type == "layout":
+    elif metadata._type == "layout": # pragma: no branch
       out_path = args.file
 
     log.info("Dumping {0} to '{1}'...".format(metadata._type, out_path))
@@ -169,9 +167,10 @@ def _verify_metadata(metadata, args):
       pub_key_dict = util.import_rsa_public_keys_from_files_as_dict(args.key)
 
     # ... or from gpg keyring
-    elif args.gpg != None:
+    elif args.gpg != None: # pragma: no branch
       pub_key_dict = util.import_gpg_public_keys_from_keyring_as_dict(
           args.gpg, args.gpg_home)
+
 
     metadata.verify_signatures(pub_key_dict)
     log.pass_verification("Signature verification passed")
@@ -275,7 +274,7 @@ def main():
   if args.verify and args.gpg != None and len(args.gpg) < 1:
     parser.print_help()
     parser.exit(2, "missing arguments: specify at least one keyid for GPG"
-      " signature (`--gpg KEYID ...`)")
+      " signature verification (`--gpg KEYID ...`)")
 
   metadata = _load_metadata(args.file)
 
