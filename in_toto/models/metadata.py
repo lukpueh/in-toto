@@ -128,7 +128,7 @@ class Metablock(object):
     """
     <Purpose>
       Signs the pretty printed canonical JSON representation
-      (see models.common.Signable.signable_string) of the Link or Layout object
+      (see models.common.Signable.signable_bytes) of the Link or Layout object
       contained in the `signed` property with the passed key and appends the
       created signature to `signatures`.
 
@@ -141,8 +141,9 @@ class Metablock(object):
 
     """
     securesystemslib.formats.KEY_SCHEMA.check_match(key)
+    #FIXME: fix securesystemslib re-encoding for spec compliance
     signature = securesystemslib.keys.create_signature(key,
-        self.signed.signable_string)
+        self.signed.signable_bytes)
 
     self.signatures.append(signature)
 
@@ -152,7 +153,7 @@ class Metablock(object):
     """
     <Purpose>
       Signs the pretty printed canonical JSON representation
-      (see models.common.Signable.__repr__) of the Link or Layout object
+      (see models.common.Signable.signable_bytes) of the Link or Layout object
       contained in the `signed` property using `gpg_verify_signature` and
       appends the created signature to `signatures`.
 
@@ -169,7 +170,7 @@ class Metablock(object):
 
     """
     signature = in_toto.gpg.functions.gpg_sign_object(
-        self.signed.signable_string, gpg_keyid, gpg_home)
+        self.signed.signable_bytes, gpg_keyid, gpg_home)
 
     self.signatures.append(signature)
 
@@ -181,7 +182,7 @@ class Metablock(object):
     <Purpose>
       Verifies all signatures found in the `signatures` property using the keys
       from the passed dictionary of keys and the pretty printed canonical JSON
-      representation (see models.common.Signable.__repr__) of the Link or
+      representation (see models.common.Signable.signable_bytes) of the Link or
       Layout object contained in `signed`.
 
       If the signature matches `in_toto.gpg.formats.SIGNATURE_SCHEMA`,
@@ -236,11 +237,12 @@ class Metablock(object):
 
       if in_toto.gpg.formats.SIGNATURE_SCHEMA.matches(signature):
         valid = in_toto.gpg.functions.gpg_verify_signature(signature, key,
-            self.signed.signable_string)
+            self.signed.signable_bytes)
 
       else:
+        #FIXME: fix securesystemslib re-encoding for spec compliance
         valid = securesystemslib.keys.verify_signature(
-            key, signature, self.signed.signable_string)
+            key, signature, self.signed.signable_bytes)
 
       if not valid:
         raise SignatureVerificationError("Invalid signature")
