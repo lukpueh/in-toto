@@ -74,7 +74,6 @@ def parse_pubkey_packet(data):
 # this takes the signature as created by pgp and turns it into a tuf-like
 # representation (to be used with gpg_sign_object)
 def parse_signature_packet(data):
-
   data = parse_packet_header(data, PACKET_TYPES['signature_packet'])
   ptr = 0
 
@@ -134,7 +133,8 @@ def parse_signature_packet(data):
 
   # Excluded so that coverage does not vary in different test environments
   if keyid: # pragma: no cover
-    keyid = binascii.hexlify(keyid[0][1][2:])
+    keyid = list(keyid)
+    keyid = binascii.hexlify(keyid[0][1][2:]).decode("ascii")
 
   else: # pragma: no cover
     keyid = ""
