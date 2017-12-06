@@ -125,10 +125,12 @@ def parse_signature_packet(data):
   # partial one is available.
   keyid = filter(lambda x: True if x[0] == FULL_KEYID_SUBPACKET else False,
           hashed_subpacket_info)
+  # On Python 3 filter returns an Iterator but we want a list
+  keyid = list(keyid)
 
   # Excluded so that coverage does not vary in different test environments
   if keyid: # pragma: no cover
-    keyid = list(keyid)
+    keyid = keyid
     keyid = binascii.hexlify(keyid[0][1][2:]).decode("ascii")
 
   else: # pragma: no cover
