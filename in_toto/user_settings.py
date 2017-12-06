@@ -26,8 +26,8 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import os
-import log
 import ConfigParser
+import in_toto.log
 import in_toto.settings
 
 
@@ -207,11 +207,11 @@ def set_settings():
   for setting in IN_TOTO_SETTINGS:
     user_setting = user_settings.get(setting)
     if user_setting:
-      log.info("Setting (user): {0}={1}".format(
+      in_toto.log.info("Setting (user): {0}={1}".format(
           setting, user_setting))
       setattr(in_toto.settings, setting, user_setting)
 
     else:
       default_setting = getattr(in_toto.settings, setting)
-      log.info("Setting (default): {0}={1}".format(
+      in_toto.log.info("Setting (default): {0}={1}".format(
           setting, default_setting))
