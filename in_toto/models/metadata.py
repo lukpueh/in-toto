@@ -78,8 +78,8 @@ class Metablock(object):
       None.
 
     """
-    with open(filename, "wt") as fp:
-      fp.write("{}".format(self))
+    with open(filename, "wb") as fp:
+      fp.write("{}".format(self).encode("utf-8"))
 
 
   @staticmethod
@@ -103,7 +103,7 @@ class Metablock(object):
       None.
 
     """
-    with open(path, "r") as fp:
+    with open(path, "r", encoding="utf-8") as fp:
       data = json.load(fp)
 
     signatures = data.get("signatures", [])
