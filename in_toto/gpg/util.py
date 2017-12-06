@@ -14,6 +14,11 @@
 <Purpose>
   general-purpose utilities for binary data handling and pgp data parsing
 """
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
+
 import struct
 import binascii
 import subprocess

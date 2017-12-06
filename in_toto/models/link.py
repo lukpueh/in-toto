@@ -17,6 +17,10 @@
   Provides a class for link metadata which is information gathered when a
   step of the supply chain is performed.
 """
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
 
 import attr
 import json

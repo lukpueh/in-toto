@@ -26,6 +26,11 @@
     or RCfiles, see the `in_toto.user_settings` module
 
 """
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
+
 import logging
 
 # Debug level INFO shows a bunch of stuff that is happening

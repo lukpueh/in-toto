@@ -16,6 +16,10 @@
   Test inspection class functions.
 
 """
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
 
 import unittest
 from in_toto.models.layout import Layout, Inspection

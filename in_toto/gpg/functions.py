@@ -15,6 +15,11 @@
   publicly-usable functions for exporting public-keys, signing data and
   verifying signatures.
 """
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
+
 import subprocess
 import shlex
 
