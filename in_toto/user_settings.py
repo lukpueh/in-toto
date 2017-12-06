@@ -26,12 +26,14 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import os
-import ConfigParser
 import six
 import in_toto.log
 import in_toto.settings
 
-
+try:
+  import configparser
+except ImportError:
+  import ConfigParser as configparser
 
 USER_PATH = os.path.expanduser("~")
 
@@ -168,7 +170,7 @@ def get_rc():
   """
   rc_dict = {}
 
-  config = ConfigParser.ConfigParser()
+  config = configparser.ConfigParser()
   # Reset `optionxform`'s default case conversion to enable case-sensitivity
   config.optionxform = str
   config.read(RC_PATHS)
