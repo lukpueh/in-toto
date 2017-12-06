@@ -19,6 +19,7 @@ from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
+import six
 
 import os
 import sys
@@ -59,7 +60,7 @@ class TestUserSettings(unittest.TestCase):
 
     # Other unittests might depend on defaults:
     # Restore monkey patched settings ...
-    for key, val in self.settings_backup.iteritems():
+    for key, val in six.iteritems(self.settings_backup):
       setattr(in_toto.settings, key, val)
 
     # ... and delete test environment variables
