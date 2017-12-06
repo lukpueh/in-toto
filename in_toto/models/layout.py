@@ -32,6 +32,7 @@ from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
+from six import string_types
 
 import json
 import attr
@@ -145,7 +146,7 @@ class Layout(Signable):
 
   def _validate_readme(self):
     """Private method to check that the readme field is a string."""
-    if not isinstance(self.readme, basestring):
+    if not isinstance(self.readme, string_types):
       raise securesystemslib.exceptions.FormatError(
           "Invalid readme '{}', value must be a string."
           .format(self.readme))
