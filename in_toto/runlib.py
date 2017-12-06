@@ -263,18 +263,11 @@ def execute_link(link_cmd_args, record_streams):
   # btw: we ignore them in the layout anyway
 
   if record_streams:
-    # XXX: Use SpooledTemporaryFile if we expect very large outputs
-    stdout_file = tempfile.TemporaryFile()
-    stderr_file = tempfile.TemporaryFile()
+    process = subprocess.Popen(link_cmd_args, stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE, universal_newlines=True)
 
-    return_value = subprocess.call(link_cmd_args,
-        stdout=stdout_file, stderr=stderr_file)
-
-    stdout_file.seek(0)
-    stderr_file.seek(0)
-
-    stdout_str = stdout_file.read()
-    stderr_str = stderr_file.read()
+    stdout_str, stderr_str = process.communicate()
+    return_value = process.returncode
 
   else:
       return_value = subprocess.call(link_cmd_args)
