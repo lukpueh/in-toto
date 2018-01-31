@@ -17,10 +17,15 @@
   Script to search, load and run in-toto tests using the Python `unittest`
   framework.
 """
-
-from unittest import defaultTestLoader, TextTestRunner
 import sys
+import logging
+from unittest import defaultTestLoader, TextTestRunner
+
+import in_toto.log
+
+# Override in-toto logger default StreamHandler to prevent test log inundation
+in_toto.log.logger.handlers = [logging.NullHandler()]
 
 suite = defaultTestLoader.discover(start_dir=".")
-result = TextTestRunner(verbosity=2).run(suite)
+result = TextTestRunner(verbosity=2, buffer=True).run(suite)
 sys.exit(0 if result.wasSuccessful() else 1)
