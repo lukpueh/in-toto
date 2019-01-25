@@ -158,6 +158,13 @@ class TestInTotoRecordTool(tests.common.CliTestCase):
       self.assert_cli_sys_exit(["stop"] + args + ["--products",
           self.test_artifact2, self.test_artifact2], 0)
 
+
+  @unittest.skipIf(os.getenv("TEST_SKIP_GPG"), "gpg not found")
+  def test_start_stop_gpg(self):
+    """Test CLI command record start/stop with various arguments. """
+    # Give wrong password whenever prompted.
+    with mock.patch('in_toto.util.prompt_password', return_value='x'):
+
       # Start/stop sign with specified gpg keyid
       args = ["--step-name", "test7", "--gpg", self.gpg_keyid, "--gpg-home",
           self.gnupg_home]
@@ -169,14 +176,14 @@ class TestInTotoRecordTool(tests.common.CliTestCase):
       self.assert_cli_sys_exit(["start"] + args, 0)
       self.assert_cli_sys_exit(["stop"] + args, 0)
 
-
-
+  @unittest.skipIf(os.getenv("TEST_SKIP_GPG"), "gpg not found")
   def test_glob_no_unfinished_files(self):
     """Test record stop with missing unfinished files when globbing (gpg). """
     args = ["--step-name", "test-no-glob", "--gpg", self.gpg_keyid,
         "--gpg-home", self.gnupg_home]
     self.assert_cli_sys_exit(["stop"] + args, 1)
 
+  @unittest.skipIf(os.getenv("TEST_SKIP_GPG"), "gpg not found")
   def test_glob_to_many_unfinished_files(self):
     """Test record stop with to many unfinished files when globbing (gpg). """
     name = "test-to-many-glob"

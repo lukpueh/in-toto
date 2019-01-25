@@ -166,7 +166,7 @@ class TestInTotoRunTool(tests.common.CliTestCase):
     """Test CLI command with ed25519 key. """
     args = ["-n", self.test_step,
         "--key", self.ed25519_key_path,
-        "--key-type", "ed25519", "--", "ls"]
+        "--key-type", "ed25519", "--", "python", "--version"]
 
     self.assert_cli_sys_exit(args, 0)
     self.assertTrue(os.path.exists(self.test_link_ed25519))
@@ -179,7 +179,7 @@ class TestInTotoRunTool(tests.common.CliTestCase):
     generate_and_write_ed25519_keypair(key_path, password)
     args = ["-n", self.test_step,
         "--key", key_path,
-        "--key-type", "ed25519", "--", "ls"]
+        "--key-type", "ed25519", "--", "python", "--version"]
 
     with mock.patch('in_toto.util.prompt_password', return_value=password):
       key = import_private_key_from_file(key_path, KEY_TYPE_ED25519)
@@ -188,7 +188,7 @@ class TestInTotoRunTool(tests.common.CliTestCase):
       self.assert_cli_sys_exit(args, 0)
       self.assertTrue(os.path.exists(linkpath))
 
-
+  @unittest.skipIf(os.getenv("TEST_SKIP_GPG"), "gpg not found")
   def test_main_with_specified_gpg_key(self):
     """Test CLI command with specified gpg key. """
     args = ["-n", self.test_step,
@@ -201,7 +201,7 @@ class TestInTotoRunTool(tests.common.CliTestCase):
 
     self.assertTrue(os.path.exists(link_filename))
 
-
+  @unittest.skipIf(os.getenv("TEST_SKIP_GPG"), "gpg not found")
   def test_main_with_default_gpg_key(self):
     """Test CLI command with default gpg key. """
     args = ["-n", self.test_step,

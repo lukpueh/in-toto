@@ -168,7 +168,7 @@ class TestLayoutMethods(unittest.TestCase):
     with self.assertRaises(securesystemslib.exceptions.FormatError):
       layout.remove_inspection_by_name(False)
 
-
+  @unittest.skipIf(os.getenv("TEST_SKIP_GPG"), "gpg not found")
   def test_functionary_keys(self):
     """Test adding and listing functionary keys (securesystemslib and gpg). """
     layout = Layout()
