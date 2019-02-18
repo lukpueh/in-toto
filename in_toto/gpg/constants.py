@@ -50,10 +50,11 @@ GPG_EXPORT_PUBKEY_COMMAND = GPG_COMMAND + " {homearg} --export {keyid}"
 PACKET_TYPES = {
     'signature_packet': 0x02,
     'master_pubkey_packet': 0x06,
+    'user_id_packet': 0x0D,
     'pub_subkey_packet': 0x0E,
 }
 
-# See sections 5.2.3 (signature) and 5.2.2 (public key) of RFC4880
+# See sections 5.2.3 (signature) and 5.5.2 (public key) of RFC4880
 SUPPORTED_SIGNATURE_PACKET_VERSIONS = {0x04}
 SUPPORTED_PUBKEY_PACKET_VERSIONS = {0x04}
 
@@ -77,11 +78,23 @@ SIGNATURE_HANDLERS = {
 }
 
 # The constants for hash algorithms are taken from section 9.4 of RFC4880.
+SHA1 = 0x02
 SHA256 = 0x08
-SUPPORTED_HASH_ALGORITHMS = {SHA256}
+SHA512 = 0x0A
+
 
 # See section 5.2.1 of RFC4880
 SIGNATURE_TYPE_BINARY = 0x00
+SIGNATURE_TYPES_SELF = {
+  "cert_generic": 0x10,
+  "cert_persona": 0x11,
+  "cert_casual": 0x12,
+  "cert_positive": 0x13,
+  "subkey_binding": 0x18,
+  "primary_key_binding": 0x19,
+  "key_direct": 0x1F
+}
+
 
 # See section 5.2.3.1 (Issuer) of RFC4880
 PARTIAL_KEYID_SUBPACKET = 0x10

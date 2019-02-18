@@ -78,7 +78,7 @@ def hash_object(headers, algorithm, content):
   <Returns>
     The RFC4880-compliant hashed buffer
   """
-  # as per RFC4880 Section 5.2.2 paragraph 4, we need to hash the content,
+  # As per RFC4880 Section 5.2.4., we need to hash the content,
   # signature headers and add a very opinionated trailing header
   hasher = hashing.Hash(algorithm, backend=backends.default_backend())
   hasher.update(content)

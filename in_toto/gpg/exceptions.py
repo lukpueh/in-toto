@@ -29,3 +29,12 @@ class PacketVersionNotSupportedError(Exception):
 
 class SignatureAlgorithmNotSupportedError(Exception):
   pass
+
+class SignatureTypeNotSupportedError(Exception):
+  pass
+
+class HashAlgorithmNotSupportedError(Exception):
+  pass
+
+class KeyIdNotFoundError(Exception):
+  pass

@@ -165,7 +165,8 @@ def get_signature_params(data):
   return signature
 
 
-def gpg_verify_signature(signature_object, pubkey_info, content):
+def gpg_verify_signature(signature_object, pubkey_info, content,
+    hash_algorithm=None):
   """
   <Purpose>
     Verify the passed signature against the passed content with the passed
@@ -195,17 +196,32 @@ def gpg_verify_signature(signature_object, pubkey_info, content):
   in_toto.gpg.formats.SIGNATURE_SCHEMA.check_match(signature_object)
   in_toto.gpg.formats.DSA_PUBKEY_SCHEMA.check_match(pubkey_info)
 
+  if not hash_algorithm or hash_algorithm == in_toto.gpg.constants.SHA256:
+    hasher = hashing.SHA256
+
+  elif hash_algorithm == in_toto.gpg.constants.SHA1:
+    hasher = hashing.SHA1
+
+  elif hash_algorithm == in_toto.gpg.constants.SHA512:
+    hasher = hashing.SHA512
+
+  else:
+    raise ValueError("Hash algorithm '{}' not supported, must be one of '{}'"
+        " (see RFC4880 9.4.  Hash Algorithms).".format(hash_algorithm,
+          {in_toto.gpg.constants.SHA1, in_toto.gpg.constants.SHA256,
+          in_toto.gpg.constants.SHA512}))
+
   pubkey_object = create_pubkey(pubkey_info)
 
   digest = in_toto.gpg.util.hash_object(
       binascii.unhexlify(signature_object['other_headers']),
-      hashing.SHA256(), content)
+      hasher(), content)
 
   try:
     pubkey_object.verify(
       binascii.unhexlify(signature_object['signature']),
       digest,
-      dsautils.Prehashed(hashing.SHA256())
+      dsautils.Prehashed(hasher())
     )
     return True
   except cryptography.exceptions.InvalidSignature:

@@ -38,6 +38,7 @@ from in_toto.gpg.common import parse_pubkey_payload
 import securesystemslib.formats
 import securesystemslib.exceptions
 
+
 @unittest.skipIf(os.getenv("TEST_SKIP_GPG"), "gpg not found")
 class TestUtil(unittest.TestCase):
   """Test util functions. """
@@ -107,9 +108,9 @@ class TestGPGRSA(unittest.TestCase):
     ssh_key = serialization.load_ssh_public_key(keydata,
         backends.default_backend())
 
-    self.assertEquals(ssh_key.public_numbers().n,
+    self.assertEqual(ssh_key.public_numbers().n,
         our_exported_key.public_numbers().n)
-    self.assertEquals(ssh_key.public_numbers().e,
+    self.assertEqual(ssh_key.public_numbers().e,
         our_exported_key.public_numbers().e)
 
     subkey_keyids = list(key_data["subkeys"].keys())
@@ -171,6 +172,27 @@ class TestGPGRSA(unittest.TestCase):
     else:
       del os.environ["GNUPGHOME"]
 
+  # def test_debug_system_keychain(self):
+  #   """This is a pure debugging test, to try our export key on the gpg system key
+  #   chain, which tends (at least on my developer machine) to reveal some
+  #   interesting corner cases. """
+  #   # FIXME: Remove test when done with debugging!!!!
+  #   import subprocess, logging
+  #   # Fetch keyids from the local keychain
+  #   cmd = "gpg --list-keys --fast-list-mode 2>&1 | grep -E -o --color=never [A-F0-9]\{40\}"
+  #   # on debian
+  #   # cmd = "gpg --list-keys --with-colons  2>&1 | grep ^pub | grep -E -o --color=never [A-F0-9]\{16\}"
+  #   keyids = subprocess.check_output(cmd, shell=True, universal_newlines=True)
+  #   # Temporarily turn on all logging
+  #   logger = logging.getLogger("in_toto")
+  #   level_orig = logger.level
+  #   logger.setLevel(logging.DEBUG)
+  #   # Try export every available key
+  #   for keyid in keyids.splitlines():
+  #     key = gpg_export_pubkey(keyid)
+  #   # Reset logger
+  #   logger.setLevel(level_orig)
+
 
 @unittest.skipIf(os.getenv("TEST_SKIP_GPG"), "gpg not found")
 class TestGPGDSA(unittest.TestCase):
@@ -220,13 +242,13 @@ class TestGPGDSA(unittest.TestCase):
     ssh_key = serialization.load_ssh_public_key(keydata,
         backends.default_backend())
 
-    self.assertEquals(ssh_key.public_numbers().y,
+    self.assertEqual(ssh_key.public_numbers().y,
         our_exported_key.public_numbers().y)
-    self.assertEquals(ssh_key.public_numbers().parameter_numbers.g,
+    self.assertEqual(ssh_key.public_numbers().parameter_numbers.g,
         our_exported_key.public_numbers().parameter_numbers.g)
-    self.assertEquals(ssh_key.public_numbers().parameter_numbers.q,
+    self.assertEqual(ssh_key.public_numbers().parameter_numbers.q,
         our_exported_key.public_numbers().parameter_numbers.q)
-    self.assertEquals(ssh_key.public_numbers().parameter_numbers.p,
+    self.assertEqual(ssh_key.public_numbers().parameter_numbers.p,
         our_exported_key.public_numbers().parameter_numbers.p)
 
   def test_gpg_sign_and_verify_object_with_default_key(self):
