@@ -19,6 +19,7 @@
 
 """
 import os
+import sys
 import unittest
 import shutil
 import tempfile
@@ -475,17 +476,17 @@ class TestInTotoRun(unittest.TestCase):
   def test_in_toto_run_verify_signature(self):
     """Successfully run, verify signed metadata. """
     link = in_toto_run(self.step_name, None, None,
-        ["python", "--version"], True, self.key)
+        [sys.executable, "--version"], True, self.key)
     link.verify_signature(self.key)
 
   def test_in_toto_run_no_signature(self):
     """Successfully run, verify empty signature field. """
-    link = in_toto_run(self.step_name, None, None, ["python", "--version"])
+    link = in_toto_run(self.step_name, None, None, [sys.executable, "--version"])
     self.assertFalse(len(link.signatures))
 
   def test_in_toto_run_with_byproduct(self):
     """Successfully run, verify recorded byproduct. """
-    link = in_toto_run(self.step_name, None, None, ["python", "--version"],
+    link = in_toto_run(self.step_name, None, None, [sys.executable, "--version"],
         record_streams=True)
 
     # this or clause may seem weird, but given that python 2 prints its version
@@ -498,14 +499,14 @@ class TestInTotoRun(unittest.TestCase):
 
   def test_in_toto_run_without_byproduct(self):
     """Successfully run, verify byproduct is not recorded. """
-    link = in_toto_run(self.step_name, None, None, ["python", "--version"],
+    link = in_toto_run(self.step_name, None, None, [sys.executable, "--version"],
         record_streams=False)
     self.assertFalse(len(link.signed.byproducts.get("stdout")))
 
   def test_in_toto_run_compare_dumped_with_returned_link(self):
     """Successfully run, compare dumped link is equal to returned link. """
     link = in_toto_run(self.step_name, [self.test_artifact],
-        [self.test_artifact], ["python", "--version"], True, self.key)
+        [self.test_artifact], [sys.executable, "--version"], True, self.key)
     link_dump = Metablock.load(
         FILENAME_FORMAT.format(step_name=self.step_name, keyid=self.key["keyid"]))
     self.assertEqual(repr(link), repr(link_dump))
@@ -513,13 +514,13 @@ class TestInTotoRun(unittest.TestCase):
   def test_in_toto_run_verify_recorded_artifacts(self):
     """Successfully run, verify properly recorded artifacts. """
     link = in_toto_run(self.step_name, [self.test_artifact],
-        [self.test_artifact], ["python", "--version"])
+        [self.test_artifact], [sys.executable, "--version"])
     self.assertEqual(list(link.signed.materials.keys()),
         list(link.signed.products.keys()), [self.test_artifact])
 
   def test_in_toto_run_verify_workdir(self):
     """Successfully run, verify cwd. """
-    link = in_toto_run(self.step_name, [], [], ["python", "--version"],
+    link = in_toto_run(self.step_name, [], [], [sys.executable, "--version"],
         record_environment=True)
     self.assertEqual(link.signed.environment["workdir"],
         os.getcwd().replace("\\", "/"))
@@ -537,7 +538,7 @@ class TestInTotoRun(unittest.TestCase):
 
       # Call in_toto_run and record artifacts as materials and products
       # with line ending normalization on
-      link = in_toto_run(self.step_name, paths, paths, ["python", "--version"],
+      link = in_toto_run(self.step_name, paths, paths, [sys.executable, "--version"],
           normalize_line_endings=True).signed
 
       # Check that all three hashes in materials and products are equal
@@ -555,13 +556,13 @@ class TestInTotoRun(unittest.TestCase):
     """Fail run, passed key is not properly formatted. """
     with self.assertRaises(securesystemslib.exceptions.FormatError):
       in_toto_run(self.step_name, None, None,
-          ["python", "--version"], True, "this-is-not-a-key")
+          [sys.executable, "--version"], True, "this-is-not-a-key")
 
   def test_in_toto_wrong_key(self):
     """Fail run, passed key is a public key. """
     with self.assertRaises(securesystemslib.exceptions.FormatError):
       in_toto_run(self.step_name, None, None,
-          ["python", "--version"], True, self.key_pub)
+          [sys.executable, "--version"], True, self.key_pub)
 
 
 class TestInTotoRecordStart(unittest.TestCase):

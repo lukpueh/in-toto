@@ -97,7 +97,7 @@ class TestInTotoRunTool(tests.common.CliTestCase):
     """Test CLI command with required arguments. """
 
     args = ["--step-name", self.test_step, "--key", self.rsa_key_path, "--",
-        "python", "--version"]
+        sys.executable, "--version"]
 
     # Give wrong password whenever prompted.
     with mock.patch('in_toto.util.prompt_password', return_value='x'):
@@ -112,7 +112,7 @@ class TestInTotoRunTool(tests.common.CliTestCase):
     named_args = ["--step-name", self.test_step, "--key",
         self.rsa_key_path, "--materials", self.test_artifact, "--products",
         self.test_artifact, "--record-streams"]
-    positional_args = ["--", "python", "--version"]
+    positional_args = ["--", sys.executable, "--version"]
 
     # Give wrong password whenever prompted.
     with mock.patch('in_toto.util.prompt_password', return_value='x'):
@@ -187,7 +187,7 @@ class TestInTotoRunTool(tests.common.CliTestCase):
     """Test CLI command with specified gpg key. """
     args = ["-n", self.test_step,
             "--gpg", self.non_default_gpg_keyid,
-            "--gpg-home", self.gnupg_home, "--", "python", "--version"]
+            "--gpg-home", self.gnupg_home, "--", sys.executable, "--version"]
 
     self.assert_cli_sys_exit(args, 0)
     link_filename = FILENAME_FORMAT.format(step_name=self.test_step,
@@ -199,7 +199,7 @@ class TestInTotoRunTool(tests.common.CliTestCase):
   def test_main_with_default_gpg_key(self):
     """Test CLI command with default gpg key. """
     args = ["-n", self.test_step,
-            "--gpg", "--gpg-home", self.gnupg_home, "--", "python", "--version"]
+            "--gpg", "--gpg-home", self.gnupg_home, "--", sys.executable, "--version"]
 
     self.assert_cli_sys_exit(args, 0)
 

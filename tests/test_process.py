@@ -17,6 +17,7 @@
 
 """
 import os
+import sys
 import tempfile
 import unittest
 import shlex
@@ -38,7 +39,7 @@ class Test_Process(unittest.TestCase):
 
     stdin_file = open(path)
     cmd = \
-        "python -c \"import sys; assert(sys.stdin.read() == '{}')\""
+        sys.executable + " -c \"import sys; assert(sys.stdin.read() == '{}')\""
 
     # input is used in favor of stdin
     in_toto.process.run(cmd.format("use input kwarg"),
@@ -56,7 +57,7 @@ class Test_Process(unittest.TestCase):
   def test_run_duplicate_streams(self):
     """Test output as streams and as returned.  """
     # Command that prints 'foo' to stdout and 'bar' to stderr.
-    cmd = ("python -c \""
+    cmd = (sys.executable + " -c \""
         "import sys;"
         "sys.stdout.write('foo');"
         "sys.stderr.write('bar');\"")
@@ -100,7 +101,7 @@ class Test_Process(unittest.TestCase):
 
   def test_run_duplicate_streams_arg_return_code(self):
     """Test command arg as string and list and return code. """
-    cmd_str = ("python -c \""
+    cmd_str = (sys.executable + " -c \""
         "import sys;"
         "sys.exit(100)\"")
     cmd_list = shlex.split(cmd_str)
@@ -113,7 +114,7 @@ class Test_Process(unittest.TestCase):
   def test_run_duplicate_streams_timeout(self):
     """Test raise TimeoutExpired. """
     with self.assertRaises(in_toto.process.subprocess.TimeoutExpired):
-      in_toto.process.run_duplicate_streams("python --version", timeout=-1)
+      in_toto.process.run_duplicate_streams(sys.executable + " --version", timeout=-1)
 
 
 

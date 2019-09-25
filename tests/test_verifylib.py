@@ -101,7 +101,7 @@ class TestRunAllInspections(unittest.TestCase):
         "steps": [],
         "inspect": [{
           "name": "touch-bar",
-          "run": ["python", os.path.join(scripts_directory, "touch"), "bar"],
+          "run": [sys.executable, os.path.join(scripts_directory, "touch"), "bar"],
         }]
       })
 
@@ -141,7 +141,7 @@ class TestRunAllInspections(unittest.TestCase):
         "steps": [],
         "inspect": [{
           "name": "non-zero-inspection",
-          "run": ["python", "./scripts/expr", "1", "/", "0"],
+          "run": [sys.executable, "./scripts/expr", "1", "/", "0"],
         }]
     })
     with self.assertRaises(BadReturnValueError):
@@ -784,7 +784,7 @@ class TestInTotoVerify(unittest.TestCase):
 
     # dump layout with failing inspection retval
     layout = copy.deepcopy(layout_template)
-    layout.signed.inspect[0].run = ["python", "./scripts/expr", "1", "/", "0"]
+    layout.signed.inspect[0].run = [sys.executable, "./scripts/expr", "1", "/", "0"]
     layout.sign(alice)
     layout.dump(self.layout_failing_inspection_retval)
 
