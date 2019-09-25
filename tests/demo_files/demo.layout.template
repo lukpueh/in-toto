@@ -25,7 +25,6 @@
             ],
             "name": "untar",
             "run": [
-                "python",
                 "./scripts/tar",
                 "xfz",
                 "foo.tar.gz"
