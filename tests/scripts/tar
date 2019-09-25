@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 """
   <description>
     this is a mock tar command written to provide portability
