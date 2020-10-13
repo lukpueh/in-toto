@@ -31,14 +31,16 @@ else:
   import mock # pylint: disable=import-error
 
 from in_toto.util import (generate_and_write_rsa_keypair,
-    generate_and_write_ed25519_keypair, import_private_key_from_file,
-    KEY_TYPE_RSA, KEY_TYPE_ED25519)
+    generate_and_write_ed25519_keypair, import_rsa_privatekey_from_file,
+    import_ed25519_privatekey_from_file, KEY_TYPE_RSA, KEY_TYPE_ED25519)
 
 from in_toto.models.metadata import Metablock
 from in_toto.in_toto_run import main as in_toto_run_main
 from in_toto.models.link import FILENAME_FORMAT
 
 from tests.common import CliTestCase, TmpDirMixin, GPGKeysMixin
+
+import securesystemslib.interface
 
 
 class TestInTotoRunTool(CliTestCase, TmpDirMixin, GPGKeysMixin):
@@ -55,13 +57,11 @@ class TestInTotoRunTool(CliTestCase, TmpDirMixin, GPGKeysMixin):
 
     self.rsa_key_path = "test_key_rsa"
     generate_and_write_rsa_keypair(self.rsa_key_path)
-    self.rsa_key = import_private_key_from_file(self.rsa_key_path,
-        KEY_TYPE_RSA)
+    self.rsa_key = import_rsa_privatekey_from_file(self.rsa_key_path)
 
     self.ed25519_key_path = "test_key_ed25519"
     generate_and_write_ed25519_keypair(self.ed25519_key_path)
-    self.ed25519_key = import_private_key_from_file(self.ed25519_key_path,
-        KEY_TYPE_ED25519)
+    self.ed25519_key = import_ed25519_privatekey_from_file(self.ed25519_key_path)
 
     self.test_step = "test_step"
     self.test_link_rsa = FILENAME_FORMAT.format(step_name=self.test_step, keyid=self.rsa_key["keyid"])
@@ -84,7 +84,7 @@ class TestInTotoRunTool(CliTestCase, TmpDirMixin, GPGKeysMixin):
         "python", "--version"]
 
     # Give wrong password whenever prompted.
-    with mock.patch('in_toto.util.prompt_password', return_value='x'):
+    with mock.patch('securesystemslib.interface.get_password', return_value='x'):
       self.assert_cli_sys_exit(args, 0)
 
     self.assertTrue(os.path.exists(self.test_link_rsa))
@@ -99,7 +99,7 @@ class TestInTotoRunTool(CliTestCase, TmpDirMixin, GPGKeysMixin):
     positional_args = ["--", "python", "--version"]
 
     # Give wrong password whenever prompted.
-    with mock.patch('in_toto.util.prompt_password', return_value='x'):
+    with mock.patch('securesystemslib.interface.get_password', return_value='x'):
 
       # Test and assert recorded artifacts
       args1 = named_args + positional_args
@@ -148,7 +148,7 @@ class TestInTotoRunTool(CliTestCase, TmpDirMixin, GPGKeysMixin):
         "--metadata-directory", tmp_dir, "--", "python", "--version"]
 
     # Give wrong password whenever prompted.
-    with mock.patch('in_toto.util.prompt_password', return_value='x'):
+    with mock.patch('securesystemslib.interface.get_password', return_value='x'):
       self.assert_cli_sys_exit(args, 0)
 
     linkpath = os.path.join(tmp_dir, self.test_link_rsa)
@@ -173,10 +173,11 @@ class TestInTotoRunTool(CliTestCase, TmpDirMixin, GPGKeysMixin):
     generate_and_write_ed25519_keypair(key_path, password)
     args = ["-n", self.test_step,
         "--key", key_path,
-        "--key-type", "ed25519", "--", "ls"]
+        "--key-type", "ed25519",
+        "--password", "--", "ls"]
 
-    with mock.patch('in_toto.util.prompt_password', return_value=password):
-      key = import_private_key_from_file(key_path, KEY_TYPE_ED25519)
+    with mock.patch('securesystemslib.interface.get_password', return_value=password):
+      key = import_ed25519_privatekey_from_file(key_path, prompt=True)
       linkpath = FILENAME_FORMAT.format(step_name=self.test_step, keyid=key["keyid"])
 
       self.assert_cli_sys_exit(args, 0)
@@ -216,7 +217,7 @@ class TestInTotoRunTool(CliTestCase, TmpDirMixin, GPGKeysMixin):
         self.rsa_key_path, "--no-command"]
 
     # Give wrong password whenever prompted.
-    with mock.patch('in_toto.util.prompt_password', return_value='x'):
+    with mock.patch('securesystemslib.interface.get_password', return_value='x'):
       self.assert_cli_sys_exit(args, 0)
 
     self.assertTrue(os.path.exists(self.test_link_rsa))

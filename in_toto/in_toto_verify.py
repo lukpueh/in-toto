@@ -174,14 +174,14 @@ def main():
     if args.layout_keys is not None:
       LOG.info("Loading layout key(s)...")
       layout_key_dict.update(
-          in_toto.util.import_public_keys_from_files_as_dict(
-            args.layout_keys, args.key_types))
+          in_toto.util.import_publickeys_from_file(
+                args.layout_keys, args.key_types))
 
     if args.gpg is not None:
       LOG.info("Loading layout gpg key(s)...")
       layout_key_dict.update(
-          in_toto.util.import_gpg_public_keys_from_keyring_as_dict(
-          args.gpg, gpg_home=args.gpg_home))
+          in_toto.util.import_gnupg_publickeys(
+              args.gpg, homedir=args.gpg_home))
 
     verifylib.in_toto_verify(layout, layout_key_dict, args.link_dir)
 

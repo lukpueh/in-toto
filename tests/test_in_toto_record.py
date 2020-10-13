@@ -34,6 +34,8 @@ from in_toto.in_toto_record import main as in_toto_record_main
 
 from tests.common import CliTestCase, TmpDirMixin, GPGKeysMixin
 
+import securesystemslib.interface
+
 
 
 class TestInTotoRecordTool(CliTestCase, TmpDirMixin, GPGKeysMixin):
@@ -70,7 +72,7 @@ class TestInTotoRecordTool(CliTestCase, TmpDirMixin, GPGKeysMixin):
     """Test CLI command record start/stop with various arguments. """
 
     # Give wrong password whenever prompted.
-    with mock.patch('in_toto.util.prompt_password', return_value='x'):
+    with mock.patch('securesystemslib.interface.get_password', return_value='x'):
 
       # Start/stop recording using rsa key
       args = ["--step-name", "test1", "--key", self.rsa_key_path]
@@ -188,12 +190,12 @@ class TestInTotoRecordTool(CliTestCase, TmpDirMixin, GPGKeysMixin):
     """Error exit with missing unfinished link file. """
     args = ["--step-name", "no-link", "--key", self.rsa_key_path]
     # Give wrong password whenever prompted.
-    with mock.patch('in_toto.util.prompt_password', return_value='x'):
+    with mock.patch('securesystemslib.interface.get_password', return_value='x'):
       self.assert_cli_sys_exit(["stop"] + args, 1)
 
     args = ["--step-name", "no-link", "--key", self.ed25519_key_path, "--key-type", "ed25519"]
     # Give wrong password whenever prompted.
-    with mock.patch('in_toto.util.prompt_password', return_value='x'):
+    with mock.patch('securesystemslib.interface.get_password', return_value='x'):
       self.assert_cli_sys_exit(["stop"] + args, 1)
 
 

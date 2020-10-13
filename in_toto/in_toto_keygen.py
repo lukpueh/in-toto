@@ -111,7 +111,7 @@ directory.
 def main():
   """
   First calls parse_args to parse the arguments, and then calls either
-  prompt_generate_and_write_rsa_keypair or generate_and_write_rsa_keypair
+  generate_and_write_rsa_keypair or generate_and_write_ed25519_keypair
   depending upon the arguments. It then dumps the corresponding key files as:
   <filename> and <filename>.pub (Private key and Public key respectively)
   """
@@ -119,27 +119,17 @@ def main():
   args = parser.parse_args()
 
   try:
-    if args.prompt:
-      if args.type == in_toto.util.KEY_TYPE_RSA:
-        in_toto.util.prompt_generate_and_write_rsa_keypair(args.name,
-                                                           args.bits)
-      elif args.type == in_toto.util.KEY_TYPE_ED25519:
-        in_toto.util.prompt_generate_and_write_ed25519_keypair(args.name)
-      else:  # pragma: no cover
-        LOG.error(
-            "(in-toto-keygen) Unsupported keytype: {0}".format(str(args.type)))
-        sys.exit(1)
-      sys.exit(0)
-    else:
-      if args.type == in_toto.util.KEY_TYPE_RSA:
-        in_toto.util.generate_and_write_rsa_keypair(args.name)
-      elif args.type == in_toto.util.KEY_TYPE_ED25519:
-        in_toto.util.generate_and_write_ed25519_keypair(args.name)
-      else:  # pragma: no cover
-        LOG.error(
-            "(in-toto-keygen) Unsupported keytype: {0}".format(str(args.type)))
-        sys.exit(1)
-      sys.exit(0)
+    if args.type == in_toto.util.KEY_TYPE_RSA:
+      in_toto.util.generate_and_write_rsa_keypair(
+          filename=args.name, bits=args.bits, prompt=args.prompt)
+    elif args.type == in_toto.util.KEY_TYPE_ED25519:
+      in_toto.util.generate_and_write_ed25519_keypair(
+          filename=args.name, prompt=args.prompt)
+    else:  # pragma: no cover
+      LOG.error(
+          "(in-toto-keygen) Unsupported keytype: {0}".format(str(args.type)))
+      sys.exit(1)
+    sys.exit(0)
 
   except Exception as e:
     LOG.error("(in-toto-keygen) {0}: {1}".format(type(e).__name__, e))

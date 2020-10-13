@@ -22,6 +22,16 @@ Supply Chain Verification
 Utilities
 ---------
 
-.. todo::
-
-  Document `in-toto.util` in accordance with `#80 <https://github.com/in-toto/in-toto/issues/80>`_
+.. autofunction:: in_toto.util.generate_and_write_rsa_keypair
+.. autofunction:: in_toto.util.import_rsa_privatekey_from_file
+.. autofunction:: in_toto.util.import_rsa_publickey_from_file
+.. autofunction:: in_toto.util.generate_and_write_ed25519_keypair
+.. autofunction:: in_toto.util.import_ed25519_publickey_from_file
+.. autofunction:: in_toto.util.import_ed25519_privatekey_from_file
+.. autofunction:: in_toto.util.generate_and_write_ecdsa_keypair
+.. autofunction:: in_toto.util.import_ecdsa_publickey_from_file
+.. autofunction:: in_toto.util.import_ecdsa_privatekey_from_file
+.. autofunction:: in_toto.util.import_publickeys_from_file
+.. autofunction:: in_toto.util.import_privatekey_from_file
+.. autofunction:: in_toto.util.import_gnupg_publickey
+.. autofunction:: in_toto.util.import_gnupg_publickeys
