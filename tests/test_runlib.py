@@ -32,7 +32,7 @@ from in_toto.exceptions import SignatureVerificationError
 from in_toto.runlib import (in_toto_run, in_toto_record_start,
     in_toto_record_stop, record_artifacts_as_dict, _apply_exclude_patterns,
     _hash_artifact)
-from in_toto.util import (generate_and_write_rsa_keypair,
+from securesystemslib.interface import (generate_and_write_rsa_keypair,
     import_rsa_privatekey_from_file, import_rsa_publickey_from_file)
 from in_toto.models.link import UNFINISHED_FILENAME_FORMAT, FILENAME_FORMAT
 

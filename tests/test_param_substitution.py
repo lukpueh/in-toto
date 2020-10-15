@@ -28,7 +28,7 @@ import in_toto.settings
 from in_toto.models.metadata import Metablock
 from in_toto.models.layout import  Layout
 from in_toto.verifylib import in_toto_verify, substitute_parameters
-from in_toto.util import (
+from securesystemslib.interface import (
     import_rsa_privatekey_from_file,
     import_publickeys_from_file)
 

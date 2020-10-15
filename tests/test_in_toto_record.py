@@ -28,7 +28,6 @@ if sys.version_info >= (3, 3):
 else:
   import mock # pylint: disable=import-error
 
-import in_toto.util
 from in_toto.models.link import UNFINISHED_FILENAME_FORMAT
 from in_toto.in_toto_record import main as in_toto_record_main
 
@@ -52,10 +51,10 @@ class TestInTotoRecordTool(CliTestCase, TmpDirMixin, GPGKeysMixin):
     self.set_up_gpg_keys()
 
     self.rsa_key_path = "test_key_rsa"
-    in_toto.util.generate_and_write_rsa_keypair(self.rsa_key_path)
+    securesystemslib.interface.generate_and_write_rsa_keypair(self.rsa_key_path)
 
     self.ed25519_key_path = "test_key_ed25519"
-    in_toto.util.generate_and_write_ed25519_keypair(self.ed25519_key_path)
+    securesystemslib.interface.generate_and_write_ed25519_keypair(self.ed25519_key_path)
 
     self.test_artifact1 = "test_artifact1"
     self.test_artifact2 = "test_artifact2"

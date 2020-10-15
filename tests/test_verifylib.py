@@ -50,7 +50,7 @@ from in_toto.verifylib import (verify_delete_rule, verify_create_rule,
 from in_toto.exceptions import (RuleVerificationError,
     SignatureVerificationError, LayoutExpiredError, BadReturnValueError,
     ThresholdVerificationError)
-from in_toto.util import (
+from securesystemslib.interface import (
     import_rsa_privatekey_from_file,
     import_rsa_publickey_from_file,
     import_publickeys_from_file)

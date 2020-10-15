@@ -29,9 +29,10 @@ import sys
 import argparse
 import logging
 
-import in_toto.util
 from in_toto.common_args import title_case_action_groups
-from in_toto import __version__
+from in_toto import (
+    __version__, SUPPORTED_KEY_TYPES, KEY_TYPE_RSA, KEY_TYPE_ED25519)
+from securesystemslib import interface
 
 # Command line interfaces should use in_toto base logger (c.f. in_toto.log)
 LOG = logging.getLogger("in_toto")
@@ -81,14 +82,13 @@ directory.
                             " private key before storing it")
 
   parser.add_argument("-t", "--type", type=str,
-                            choices=in_toto.util.SUPPORTED_KEY_TYPES,
-                            default=in_toto.util.KEY_TYPE_RSA,
+                            choices=SUPPORTED_KEY_TYPES,
+                            default=KEY_TYPE_RSA,
                             help="type of the key to be generated. '{rsa}'"
                             " keys are written in a 'PEM' format and"
                             " '{ed25519}' in a custom 'securesystemslib/json'"
                             " format. Default is '{rsa}'.".format(
-                            rsa=in_toto.util.KEY_TYPE_RSA,
-                            ed25519=in_toto.util.KEY_TYPE_ED25519))
+                            rsa=KEY_TYPE_RSA, ed25519=KEY_TYPE_ED25519))
 
 
   parser.add_argument("name", type=str, metavar="<filename>",
@@ -119,11 +119,11 @@ def main():
   args = parser.parse_args()
 
   try:
-    if args.type == in_toto.util.KEY_TYPE_RSA:
-      in_toto.util.generate_and_write_rsa_keypair(
+    if args.type == KEY_TYPE_RSA:
+      interface.generate_and_write_rsa_keypair(
           filename=args.name, bits=args.bits, prompt=args.prompt)
-    elif args.type == in_toto.util.KEY_TYPE_ED25519:
-      in_toto.util.generate_and_write_ed25519_keypair(
+    elif args.type == KEY_TYPE_ED25519:
+      interface.generate_and_write_ed25519_keypair(
           filename=args.name, prompt=args.prompt)
     else:  # pragma: no cover
       LOG.error(

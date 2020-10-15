@@ -24,8 +24,8 @@ import shutil
 
 from in_toto.models.metadata import Metablock
 from in_toto.in_toto_verify import main as in_toto_verify_main
-from in_toto.util import import_rsa_privatekey_from_file
-from securesystemslib.interface import import_ed25519_privatekey_from_file
+from securesystemslib.interface import (import_rsa_privatekey_from_file,
+    import_ed25519_privatekey_from_file)
 from securesystemslib.gpg.constants import HAVE_GPG
 
 from tests.common import CliTestCase, TmpDirMixin, GPGKeysMixin

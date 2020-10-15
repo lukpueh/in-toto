@@ -22,16 +22,16 @@ Supply Chain Verification
 Utilities
 ---------
 
-.. autofunction:: in_toto.util.generate_and_write_rsa_keypair
-.. autofunction:: in_toto.util.import_rsa_privatekey_from_file
-.. autofunction:: in_toto.util.import_rsa_publickey_from_file
-.. autofunction:: in_toto.util.generate_and_write_ed25519_keypair
-.. autofunction:: in_toto.util.import_ed25519_publickey_from_file
-.. autofunction:: in_toto.util.import_ed25519_privatekey_from_file
-.. autofunction:: in_toto.util.generate_and_write_ecdsa_keypair
-.. autofunction:: in_toto.util.import_ecdsa_publickey_from_file
-.. autofunction:: in_toto.util.import_ecdsa_privatekey_from_file
-.. autofunction:: in_toto.util.import_publickeys_from_file
-.. autofunction:: in_toto.util.import_privatekey_from_file
-.. autofunction:: in_toto.util.import_gnupg_publickey
-.. autofunction:: in_toto.util.import_gnupg_publickeys
+.. autofunction:: securesystemslib.interface.generate_and_write_rsa_keypair
+.. autofunction:: securesystemslib.interface.import_rsa_privatekey_from_file
+.. autofunction:: securesystemslib.interface.import_rsa_publickey_from_file
+.. autofunction:: securesystemslib.interface.generate_and_write_ed25519_keypair
+.. autofunction:: securesystemslib.interface.import_ed25519_publickey_from_file
+.. autofunction:: securesystemslib.interface.import_ed25519_privatekey_from_file
+.. autofunction:: securesystemslib.interface.generate_and_write_ecdsa_keypair
+.. autofunction:: securesystemslib.interface.import_ecdsa_publickey_from_file
+.. autofunction:: securesystemslib.interface.import_ecdsa_privatekey_from_file
+.. autofunction:: securesystemslib.interface.import_publickeys_from_file
+.. autofunction:: securesystemslib.interface.import_privatekey_from_file
+.. autofunction:: securesystemslib.gpg.functions.export_pubkey
+.. autofunction:: securesystemslib.gpg.functions.export_pubkeys

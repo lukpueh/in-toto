@@ -30,9 +30,9 @@ if sys.version_info >= (3, 3):
 else:
   import mock # pylint: disable=import-error
 
-from in_toto.util import (generate_and_write_rsa_keypair,
+from securesystemslib.interface import (generate_and_write_rsa_keypair,
     generate_and_write_ed25519_keypair, import_rsa_privatekey_from_file,
-    import_ed25519_privatekey_from_file, KEY_TYPE_RSA, KEY_TYPE_ED25519)
+    import_ed25519_privatekey_from_file)
 
 from in_toto.models.metadata import Metablock
 from in_toto.in_toto_run import main as in_toto_run_main
