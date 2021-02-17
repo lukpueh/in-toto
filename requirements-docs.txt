@@ -1,6 +1,8 @@
 # in-toto runtime dependencies required by sphinx
 -r requirements-pinned.txt
 
+sphinx>3.5.0
+
 # sphinx extensions
 sphinx-rtd-theme
 sphinx-argparse
