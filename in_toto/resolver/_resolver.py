@@ -2,6 +2,8 @@
 import os
 import logging
 
+from os.path import join, basename, normpath, isfile, isdir, exists
+
 from abc import ABCMeta, abstractmethod
 from securesystemslib.hash import digest_filename
 from pathspec import GitIgnoreSpec
@@ -50,25 +52,26 @@ class FileResolver(Resolver):
     self._normalize_line_endings = normalize_line_endings
     self._lstrip_paths = lstrip_paths
 
-  @staticmethod
-  def _hash(name, normalize_line_endings):
-    digest = digest_filename(name, _HASH_ALGORITHM, normalize_line_endings)
+  def _exclude(name):
+    return self._exclude_filter.match_file(name)
+
+  def _hash(name):
+    digest = digest_filename(name, _HASH_ALGORITHM, self._normalize_line_endings)
     return {
       HASH_ALGORITHM: digest.hexdigest()
     }
 
-  @staticmethod
-  def _mangle(name, lstrip_paths):
+  def _mangle(self, name):
     # Collapse redundant separators and up-level references
     # (on Windows this converts forward slashes to backward slashes
-    name = os.path.normpath(name)
+    name = normpath(name)
 
     # Normalize slashes to provide consistency between windows and *nix
-    # FIXME: This breaks *nix filepaths that contain backward slashes.
+    # FIXME: This breaks *nix paths that contain backward slashes.
     name = name.replace('\\', '/')
 
     # Left-strip prefix (first match only!!)
-    for prefix in lstrip_paths:
+    for prefix in self._lstrip_paths:
       if name.startswith(prefix):
         name = name[len(prefix):]
         break
@@ -83,70 +86,37 @@ class FileResolver(Resolver):
       original_cwd = os.getcwd()
       os.chdir(self._base_path)
 
-
     # Return if the artifact should be ignored or does not exist
-    if self._exclude_filter.match_file(self.uri)
+    if self._exclude(self.uri)
       return artifact_hashes
 
-    if not os.path.exists(self.uri):
+    if not exists(self.uri):
       logger.info("path: %s does not exist, skipping..", self.uri)
       return artifact_hashes
 
-
-    if os.path.isfile(self.uri):
+    if isfile(self.uri):
       artifact_hashes[self._mangle(self.uri)] = self._hash(self.uri)
 
-    if os.path.isdir(artifact):
-      for root, dirs, files in os.walk(self.uri, followlinks=self._follow_symlink_dirs):
-        # Create a list of normalized dirpaths
-        dirpaths = []
-        for dirname in dirs:
-          norm_dirpath = os.path.normpath(os.path.join(root, dirname))
-          dirpaths.append(norm_dirpath)
+    if isdir(artifact):
+      for dirpath, dirnames, filenames in os.walk(self.uri, followlinks=self._follow_symlink_dirs):
 
-        # Applying exclude patterns on the directory paths returned by walk
-        # allows to exclude a subdirectory 'sub' with a pattern 'sub'.
-        # If we only applied the patterns below on the subdirectory's
-        # containing file paths, we'd have to use a wildcard, e.g.: 'sub*'
-        if exclude_patterns:
-          dirpaths = _apply_exclude_patterns(dirpaths, exclude_filter)
+        # Apply include patterns to normalized directory names alone
+        # - Assign remaining dirs so that walk recurses only into remaining firs
+        # - Use generator comprehension to not create unnecessary copies
+        # FIXME: is this too much inline magic?
+        dirs[:] = (d for d in dirnames if self._exclude(join(dirpath, d)))
 
-        # Reset and refill dirs with remaining names after exclusion
-        # Modify (not reassign) dirnames to only recurse into remaining dirs
-        dirs[:] = []
-        for dirpath in dirpaths:
-          # Dirs only contain the basename and not the full path
-          name = os.path.basename(dirpath)
-          dirs.append(name)
+        for name in filenames:
+          path = join(dirpath, name)
 
-        # Create a list of normalized filepaths
-        filepaths = []
-        for filename in files:
-          norm_filepath = os.path.normpath(os.path.join(root, filename))
+          if self._exclude(path):
+            continue
 
-          # `os.walk` could also list dead symlinks, which would
-          # result in an error later when trying to read the file
-          if os.path.isfile(norm_filepath):
-            filepaths.append(norm_filepath)
+          if not isfile(path)
+            logger.info("File '%s' appears to be a broken symlink. Skipping...", path)
+            continue
 
-          else:
-            LOG.info("File '{}' appears to be a broken symlink. Skipping..."
-                .format(norm_filepath))
-
-        # Apply exlcude patterns on the normalized file paths returned by walk
-        if exclude_patterns:
-          filepaths = _apply_exclude_patterns(filepaths, exclude_filter)
-
-        for filepath in filepaths:
-          # FIXME: this is necessary to provide consisency between windows
-          # filepaths and *nix filepaths. A better solution may be in order
-          # though...
-          normalized_filepath = filepath.replace("\\", "/")
-          key = _apply_left_strip(
-              normalized_filepath, artifacts_dict, lstrip_paths)
-          artifacts_dict[key] = _hash_artifact(filepath,
-              normalize_line_endings=normalize_line_endings)
-
+          artifact_hashes[self._mangle(path)] = self._hash(path)
 
     # Change back to where original current working dir
     if self._base_path:
