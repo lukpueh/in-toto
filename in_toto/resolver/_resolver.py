@@ -4,7 +4,7 @@ import logging
 
 from os.path import join, basename, normpath, isfile, isdir, exists
 
-from abc import ABCMeta, abstractmethod
+# from abc import ABCMeta, abstractmethod
 from securesystemslib.hash import digest_filename
 from pathspec import GitIgnoreSpec
 
@@ -15,7 +15,10 @@ logger = logging.getLogger(__name__)
 _HASH_ALGORITHM = "sha256"
 
 
-# TODO: add later and update RESOLVER_FOR_URI_SCHEME in resolver/__init__
+# TODO: uncoment to add Resolver, also udate
+# - resolver/__init__ (docstring, RESOLVER_FOR_URI_SCHEME)
+# - make FileResolver inherit
+# - use in runlib
 # RESOLVER_FOR_URI_SCHEME = {}
 
 # class Resolver(metaclass=ABCMeta):
@@ -31,20 +34,27 @@ _HASH_ALGORITHM = "sha256"
 
 #     return RESOLVER_FOR_URI_SCHEME[scheme](uri)
 
-#   @abstractmethod
-#   def hash_artifacts(self):
-#     """Return hashes for one or more artifacts resolved at this instance uri. """
-#     raise NotImplementedError
+  # @abstractmethod
+  # def hash_artifacts(self):
+  #   """Return hashes for one or more artifacts resolved at this instance uri. """
+  #   raise NotImplementedError
 
-class FileResolver(Resolver):
+class FileResolver():
   def __init__(self, uri, exclude_patterns=None, base_path=None,
       follow_symlink_dirs=False, normalize_line_endings=False, lstrip_paths=None):
 
     if exclude_patterns is None:
-      exlcude_patterns = []
+      exclude_patterns = []
 
-    # Compile the gitignore-style patterns
-    self._exclude_filter = GitIgnoreSpec.from_lines('gitwildmatch')
+    if not lstrip_paths:
+      lstrip_paths = []
+
+    for name, val in [("exclude_patterns", exclude_patterns), ("lstrip_paths", lstrip_paths)]:
+      if not isinstance(val, list) or not all(isinstance(i, str) for i in val):
+        raise ValueError(f"'{name}' must be list of strings")
+
+    # Compile gitignore-style patterns
+    self._exclude_filter = GitIgnoreSpec.from_lines('gitwildmatch', exclude_patterns)
 
     self.uri = uri
     self._base_path = base_path
@@ -52,13 +62,13 @@ class FileResolver(Resolver):
     self._normalize_line_endings = normalize_line_endings
     self._lstrip_paths = lstrip_paths
 
-  def _exclude(name):
+  def _exclude(self, name):
     return self._exclude_filter.match_file(name)
 
-  def _hash(name):
-    digest = digest_filename(name, _HASH_ALGORITHM, self._normalize_line_endings)
+  def _hash(self, name):
+    digest = digest_filename(name, algorithm=_HASH_ALGORITHM, normalize_line_endings=self._normalize_line_endings)
     return {
-      HASH_ALGORITHM: digest.hexdigest()
+      _HASH_ALGORITHM: digest.hexdigest()
     }
 
   def _mangle(self, name):
@@ -87,7 +97,7 @@ class FileResolver(Resolver):
       os.chdir(self._base_path)
 
     # Return if the artifact should be ignored or does not exist
-    if self._exclude(self.uri)
+    if self._exclude(self.uri):
       return artifact_hashes
 
     if not exists(self.uri):
@@ -97,14 +107,13 @@ class FileResolver(Resolver):
     if isfile(self.uri):
       artifact_hashes[self._mangle(self.uri)] = self._hash(self.uri)
 
-    if isdir(artifact):
+    if isdir(self.uri):
       for dirpath, dirnames, filenames in os.walk(self.uri, followlinks=self._follow_symlink_dirs):
-
         # Apply include patterns to normalized directory names alone
         # - Assign remaining dirs so that walk recurses only into remaining firs
         # - Use generator comprehension to not create unnecessary copies
         # FIXME: is this too much inline magic?
-        dirs[:] = (d for d in dirnames if self._exclude(join(dirpath, d)))
+        dirnames[:] = [d for d in dirnames if not self._exclude(join(dirpath, d))]
 
         for name in filenames:
           path = join(dirpath, name)
@@ -112,7 +121,7 @@ class FileResolver(Resolver):
           if self._exclude(path):
             continue
 
-          if not isfile(path)
+          if not isfile(path):
             logger.info("File '%s' appears to be a broken symlink. Skipping...", path)
             continue
 
@@ -122,4 +131,4 @@ class FileResolver(Resolver):
     if self._base_path:
       os.chdir(original_cwd)
 
-    return artifacts_dict
+    return artifact_hashes

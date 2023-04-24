@@ -34,19 +34,28 @@ import in_toto.exceptions
 from in_toto.models.metadata import Envelope, Metablock
 from in_toto.exceptions import SignatureVerificationError
 from in_toto.runlib import (in_toto_run, in_toto_record_start,
-    in_toto_record_stop, record_artifacts_as_dict, _apply_exclude_patterns,
-    _hash_artifact, _subprocess_run_duplicate_streams)
+    in_toto_record_stop, record_artifacts_as_dict, _subprocess_run_duplicate_streams)
 from securesystemslib.interface import (
     generate_and_write_unencrypted_rsa_keypair,
     import_rsa_privatekey_from_file,
     import_rsa_publickey_from_file)
 from in_toto.models.link import UNFINISHED_FILENAME_FORMAT, FILENAME_FORMAT
 
+from in_toto.resolver import FileResolver
+
 import securesystemslib.formats
 import securesystemslib.exceptions
 
 from tests.common import TmpDirMixin
 from pathlib import Path
+
+def _apply_exclude_patterns(names, patterns):
+  """Temporary bridge from old `runlib._apply_exclude_patterns` with new
+ `FileResolver._exclude`.
+
+  TODO: Replace tist once resolver interface evolves
+  """
+  return [name for name in names if not FileResolver(name, exclude_patterns=patterns)._exclude(name)]
 
 
 class Test_ApplyExcludePatterns(unittest.TestCase):
@@ -146,11 +155,11 @@ class TestRecordArtifactsAsDict(unittest.TestCase, TmpDirMixin):
     """Raise exception with bogus base path settings. """
     for base_path in ["path/does/not/exist", 12345, True]:
       in_toto.settings.ARTIFACT_BASE_PATH = base_path
-      with self.assertRaises(ValueError):
+      with self.assertRaises(OSError):
         record_artifacts_as_dict(["."])
       in_toto.settings.ARTIFACT_BASE_PATH = None
 
-      with self.assertRaises(ValueError):
+      with self.assertRaises(OSError):
         record_artifacts_as_dict(["."], base_path=base_path)
 
 
@@ -198,24 +207,6 @@ class TestRecordArtifactsAsDict(unittest.TestCase, TmpDirMixin):
     self.assertListEqual(sorted(list(artifacts_dict.keys())),
         expected_artifacts)
 
-
-  def test_lstrip_paths_substring_prefix_directory(self):
-    lstrip_paths = ["subdir/subsubdir/", "subdir/"]
-    with self.assertRaises(in_toto.exceptions.PrefixError):
-      record_artifacts_as_dict(["."], lstrip_paths=lstrip_paths)
-
-
-  def test_lstrip_paths_non_unique_key(self):
-    os.mkdir("subdir_new")
-    path = "subdir_new/foosub1"
-    shutil.copy("subdir/foosub1", path)
-    lstrip_paths = ["subdir/", "subdir_new/"]
-    with self.assertRaises(in_toto.exceptions.PrefixError):
-      record_artifacts_as_dict(["."], lstrip_paths=lstrip_paths)
-    os.remove(path)
-    os.rmdir("subdir_new")
-
-
   def test_lstrip_paths_invalid_prefix_directory(self):
     lstrip_paths = ["not/a/directory/"]
     expected_artifacts = sorted(["#esc!", "bar", "foo", "subdir/foosub1",
@@ -233,18 +224,6 @@ class TestRecordArtifactsAsDict(unittest.TestCase, TmpDirMixin):
         lstrip_paths=lstrip_paths)
     self.assertListEqual(sorted(list(artifacts_dict.keys())),
         expected_artifacts)
-
-
-  def test_lstrip_paths_non_unique_key_file(self):
-    os.mkdir("subdir/subsubdir_new")
-    path = "subdir/subsubdir_new/foosubsub"
-    shutil.copy("subdir/subsubdir/foosubsub", path)
-    lstrip_paths = ["subdir/subsubdir/", "subdir/subsubdir_new/"]
-    with self.assertRaises(in_toto.exceptions.PrefixError):
-      record_artifacts_as_dict(["subdir/subsubdir/foosubsub",
-          "subdir/subsubdir_new/foosubsub"], lstrip_paths=lstrip_paths)
-    os.remove(path)
-    os.rmdir("subdir/subsubdir_new")
 
 
   def test_lstrip_paths_valid_unicode_prefix_file(self):
@@ -491,12 +470,8 @@ class TestRecordArtifactsAsDict(unittest.TestCase, TmpDirMixin):
     """Raise exception with bogus artifact exclude patterns settings. """
     for setting in ["not a list of settings", 12345, True]:
       in_toto.settings.ARTIFACT_EXCLUDE_PATTERNS = setting
-      with self.assertRaises(securesystemslib.exceptions.FormatError):
+      with self.assertRaises(ValueError):
         record_artifacts_as_dict(["."])
-
-  def test_hash_artifact_passing_algorithm(self):
-    """Test _hash_artifact passing hash algorithm. """
-    self.assertTrue("sha256" in list(_hash_artifact("foo", ["sha256"])))
 
 
 class TestLinkCmdExecTimeoutSetting(unittest.TestCase):

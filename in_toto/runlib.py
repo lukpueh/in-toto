@@ -30,14 +30,11 @@
 import glob
 import logging
 import os
-import itertools
 import io
 import subprocess  # nosec
 import sys
 import tempfile
 import time
-
-from pathspec import PathSpec
 
 import in_toto.settings
 import in_toto.exceptions
@@ -46,6 +43,7 @@ from in_toto.models._signer import GPGSigner
 from in_toto.models.link import (UNFINISHED_FILENAME_FORMAT, FILENAME_FORMAT,
     FILENAME_FORMAT_SHORT, UNFINISHED_FILENAME_FORMAT_GLOB)
 from in_toto.models.metadata import (Metadata, Envelope, Metablock)
+from in_toto.resolver import FileResolver
 
 import securesystemslib.formats
 import securesystemslib.hash
@@ -145,6 +143,10 @@ def record_artifacts_as_dict(artifacts, exclude_patterns=None,
     A dictionary with file paths as keys and the files' hashes as values.
 
   """
+  artifact_hashes = {}
+
+  if not artifacts:
+    return artifact_hashes
 
   if not base_path:
     base_path = in_toto.settings.ARTIFACT_BASE_PATH
@@ -152,7 +154,6 @@ def record_artifacts_as_dict(artifacts, exclude_patterns=None,
   if not exclude_patterns:
     exclude_patterns = in_toto.settings.ARTIFACT_EXCLUDE_PATTERNS
 
-  artifact_hashes = {}
   for artifact in artifacts:
     resolver = FileResolver(artifact, exclude_patterns, base_path, follow_symlink_dirs,
         normalize_line_endings, lstrip_paths)
