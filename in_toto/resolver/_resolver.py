@@ -2,8 +2,7 @@
 import logging
 import os
 from itertools import combinations
-from os.path import basename, exists, isdir, isfile, join, normpath
-from typing import List
+from os.path import exists, isdir, isfile, join, normpath
 
 from pathspec import GitIgnoreSpec
 from securesystemslib.exceptions import FormatError
@@ -38,13 +37,13 @@ class FileResolver:
             if not isinstance(val, list) or not all(
                 isinstance(i, str) for i in val
             ):
-                # FIXME: FormatError is for backwards-compat, this should be ValueError
+                # FIXME: FormatError for backwards-compat; should be ValueError
                 raise FormatError(f"'{name}' must be list of strings")
 
-        for a, b in combinations(lstrip_paths, 2):
-            if a.startswith(b) or b.startswith(a):
+        for _a, _b in combinations(lstrip_paths, 2):
+            if _a.startswith(_b) or _b.startswith(_a):
                 raise PrefixError(
-                    f"'{a}' and '{b}' triggered a left substring error"
+                    f"'{_a}' and '{_b}' triggered a left substring error"
                 )
 
         # Compile gitignore-style patterns
@@ -81,7 +80,8 @@ class FileResolver:
         # Fail if left-stripping results in duplicates
         if self._lstrip_paths and name in existing_names:
             raise PrefixError(
-                f"Prefix selection has resulted in non unique dictionary key '{name}'"
+                "Prefix selection has resulted in non unique dictionary key "
+                f"'{name}'"
             )
 
         return name
@@ -91,7 +91,7 @@ class FileResolver:
 
         if self._base_path:
             original_cwd = os.getcwd()
-            # FIXME: Re-raise seems unnecessary and is only done for backwards-compat
+            # FIXME: Re-raise for backwards-compat; should remove try/except
             try:
                 os.chdir(self._base_path)
             except Exception as e:
@@ -116,7 +116,7 @@ class FileResolver:
                 for dirpath, dirnames, filenames in os.walk(
                     uri, followlinks=self._follow_symlink_dirs
                 ):
-                    # Filter directories here to avoid unnecessary recursion below
+                    # Filter directories to avoid unnecessary recursion below
                     dirnames[:] = [
                         d
                         for d in dirnames
@@ -131,7 +131,8 @@ class FileResolver:
 
                         if not isfile(path):
                             logger.info(
-                                "File '%s' appears to be a broken symlink. Skipping...",
+                                "File '%s' appears to be a broken symlink. "
+                                "Skipping...",
                                 path,
                             )
                             continue
