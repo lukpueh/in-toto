@@ -38,7 +38,7 @@ class FileResolver:
             if not isinstance(val, list) or not all(
                 isinstance(i, str) for i in val
             ):
-                # FIXME: Uses FormatError for backwards-compat. Should be ValueError.
+                # FIXME: FormatError is for backwards-compat, this should be ValueError
                 raise FormatError(f"'{name}' must be list of strings")
 
         for a, b in combinations(lstrip_paths, 2):
@@ -68,19 +68,20 @@ class FileResolver:
         return {_HASH_ALGORITHM: digest.hexdigest()}
 
     def _mangle(self, name, existing_names):
-        # Normalize slashes to provide metadata consistency between platforms
-        # FIXME: This breaks Unix paths that contain backward slashes.
+        # Normalize slashes for cross-platform metadata consistency
+        # FIXME: This breaks Unix paths that contain backward slashes
         name = name.replace("\\", "/")
 
-        # Left-strip prefix with first match
+        # Left-strip names using configured prefixes
         for prefix in self._lstrip_paths:
             if name.startswith(prefix):
                 name = name[len(prefix) :]
                 break
 
-        if name in existing_names:
+        # Fail if left-stripping results in duplicates
+        if self._lstrip_paths and name in existing_names:
             raise PrefixError(
-                "Prefix selection has resulted in non unique dictionary key '{name}'"
+                f"Prefix selection has resulted in non unique dictionary key '{name}'"
             )
 
         return name
@@ -90,7 +91,7 @@ class FileResolver:
 
         if self._base_path:
             original_cwd = os.getcwd()
-            # FIXME: Re-raise seems unnecessary and is only kept for backwards-compat.
+            # FIXME: Re-raise seems unnecessary and is only done for backwards-compat
             try:
                 os.chdir(self._base_path)
             except Exception as e:
