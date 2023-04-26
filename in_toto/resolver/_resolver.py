@@ -42,7 +42,6 @@ _HASH_ALGORITHM = "sha256"
 class FileResolver:
     def __init__(
         self,
-        uri,
         exclude_patterns=None,
         base_path=None,
         follow_symlink_dirs=False,
@@ -69,7 +68,6 @@ class FileResolver:
             "gitwildmatch", exclude_patterns
         )
 
-        self.uri = uri
         self._base_path = base_path
         self._follow_symlink_dirs = follow_symlink_dirs
         self._normalize_line_endings = normalize_line_endings
@@ -103,7 +101,8 @@ class FileResolver:
 
         return name
 
-    def hash_artifacts(self):
+
+    def hash_artifacts(self, uris):
         artifact_hashes = {}
 
         # Temporarily change into base path dir if set
@@ -111,43 +110,44 @@ class FileResolver:
             original_cwd = os.getcwd()
             os.chdir(self._base_path)
 
-        # Return if the artifact should be ignored or does not exist
-        if self._exclude(self.uri):
-            return artifact_hashes
+        for uri in uris:
+            # Return if the artifact should be ignored or does not exist
+            if self._exclude(uri):
+                continue
 
-        if not exists(self.uri):
-            logger.info("path: %s does not exist, skipping..", self.uri)
-            return artifact_hashes
+            if not exists(uri):
+                logger.info("path: %s does not exist, skipping..", uri)
+                continue
 
-        if isfile(self.uri):
-            artifact_hashes[self._mangle(self.uri)] = self._hash(self.uri)
+            if isfile(uri):
+                artifact_hashes[self._mangle(uri)] = self._hash(uri)
 
-        if isdir(self.uri):
-            for dirpath, dirnames, filenames in os.walk(
-                self.uri, followlinks=self._follow_symlink_dirs
-            ):
-                # Apply include patterns to normalized directory names alone
-                # - Assign remaining dirs so that walk recurses only into remaining firs
-                # - Use generator comprehension to not create unnecessary copies
-                # FIXME: is this too much inline magic?
-                dirnames[:] = [
-                    d for d in dirnames if not self._exclude(join(dirpath, d))
-                ]
+            if isdir(uri):
+                for dirpath, dirnames, filenames in os.walk(
+                    uri, followlinks=self._follow_symlink_dirs
+                ):
+                    # Apply include patterns to normalized directory names alone
+                    # - Assign remaining dirs so that walk recurses only into remaining firs
+                    # - Use generator comprehension to not create unnecessary copies
+                    # FIXME: is this too much inline magic?
+                    dirnames[:] = [
+                        d for d in dirnames if not self._exclude(join(dirpath, d))
+                    ]
 
-                for name in filenames:
-                    path = join(dirpath, name)
+                    for name in filenames:
+                        path = join(dirpath, name)
 
-                    if self._exclude(path):
-                        continue
+                        if self._exclude(path):
+                            continue
 
-                    if not isfile(path):
-                        logger.info(
-                            "File '%s' appears to be a broken symlink. Skipping...",
-                            path,
-                        )
-                        continue
+                        if not isfile(path):
+                            logger.info(
+                                "File '%s' appears to be a broken symlink. Skipping...",
+                                path,
+                            )
+                            continue
 
-                    artifact_hashes[self._mangle(path)] = self._hash(path)
+                        artifact_hashes[self._mangle(path)] = self._hash(path)
 
         # Change back to where original current working dir
         if self._base_path:

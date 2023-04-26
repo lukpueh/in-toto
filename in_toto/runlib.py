@@ -154,11 +154,10 @@ def record_artifacts_as_dict(artifacts, exclude_patterns=None,
   if not exclude_patterns:
     exclude_patterns = in_toto.settings.ARTIFACT_EXCLUDE_PATTERNS
 
-  for artifact in artifacts:
-    resolver = FileResolver(artifact, exclude_patterns, base_path, follow_symlink_dirs,
-        normalize_line_endings, lstrip_paths)
+  resolver = FileResolver(exclude_patterns, base_path, follow_symlink_dirs,
+      normalize_line_endings, lstrip_paths)
 
-    artifact_hashes.update(resolver.hash_artifacts())
+  artifact_hashes = resolver.hash_artifacts(artifacts)
 
   return artifact_hashes
 

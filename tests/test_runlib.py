@@ -55,7 +55,7 @@ def _apply_exclude_patterns(names, patterns):
 
   TODO: Replace tist once resolver interface evolves
   """
-  return [name for name in names if not FileResolver(name, exclude_patterns=patterns)._exclude(name)]
+  return [n for n in names if not FileResolver(exclude_patterns=patterns)._exclude(n)]
 
 
 class Test_ApplyExcludePatterns(unittest.TestCase):
