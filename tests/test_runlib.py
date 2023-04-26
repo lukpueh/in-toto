@@ -155,11 +155,11 @@ class TestRecordArtifactsAsDict(unittest.TestCase, TmpDirMixin):
     """Raise exception with bogus base path settings. """
     for base_path in ["path/does/not/exist", 12345, True]:
       in_toto.settings.ARTIFACT_BASE_PATH = base_path
-      with self.assertRaises(OSError):
+      with self.assertRaises(ValueError):
         record_artifacts_as_dict(["."])
       in_toto.settings.ARTIFACT_BASE_PATH = None
 
-      with self.assertRaises(OSError):
+      with self.assertRaises(ValueError):
         record_artifacts_as_dict(["."], base_path=base_path)
 
 
@@ -207,6 +207,24 @@ class TestRecordArtifactsAsDict(unittest.TestCase, TmpDirMixin):
     self.assertListEqual(sorted(list(artifacts_dict.keys())),
         expected_artifacts)
 
+
+  def test_lstrip_paths_substring_prefix_directory(self):
+    lstrip_paths = ["subdir/subsubdir/", "subdir/"]
+    with self.assertRaises(in_toto.exceptions.PrefixError):
+      record_artifacts_as_dict(["."], lstrip_paths=lstrip_paths)
+
+
+  def test_lstrip_paths_non_unique_key(self):
+    os.mkdir("subdir_new")
+    path = "subdir_new/foosub1"
+    shutil.copy("subdir/foosub1", path)
+    lstrip_paths = ["subdir/", "subdir_new/"]
+    with self.assertRaises(in_toto.exceptions.PrefixError):
+      record_artifacts_as_dict(["."], lstrip_paths=lstrip_paths)
+    os.remove(path)
+    os.rmdir("subdir_new")
+
+
   def test_lstrip_paths_invalid_prefix_directory(self):
     lstrip_paths = ["not/a/directory/"]
     expected_artifacts = sorted(["#esc!", "bar", "foo", "subdir/foosub1",
@@ -224,6 +242,18 @@ class TestRecordArtifactsAsDict(unittest.TestCase, TmpDirMixin):
         lstrip_paths=lstrip_paths)
     self.assertListEqual(sorted(list(artifacts_dict.keys())),
         expected_artifacts)
+
+
+  def test_lstrip_paths_non_unique_key_file(self):
+    os.mkdir("subdir/subsubdir_new")
+    path = "subdir/subsubdir_new/foosubsub"
+    shutil.copy("subdir/subsubdir/foosubsub", path)
+    lstrip_paths = ["subdir/subsubdir/", "subdir/subsubdir_new/"]
+    with self.assertRaises(in_toto.exceptions.PrefixError):
+      record_artifacts_as_dict(["subdir/subsubdir/foosubsub",
+          "subdir/subsubdir_new/foosubsub"], lstrip_paths=lstrip_paths)
+    os.remove(path)
+    os.rmdir("subdir/subsubdir_new")
 
 
   def test_lstrip_paths_valid_unicode_prefix_file(self):
@@ -470,7 +500,7 @@ class TestRecordArtifactsAsDict(unittest.TestCase, TmpDirMixin):
     """Raise exception with bogus artifact exclude patterns settings. """
     for setting in ["not a list of settings", 12345, True]:
       in_toto.settings.ARTIFACT_EXCLUDE_PATTERNS = setting
-      with self.assertRaises(ValueError):
+      with self.assertRaises(securesystemslib.exceptions.FormatError):
         record_artifacts_as_dict(["."])
 
 

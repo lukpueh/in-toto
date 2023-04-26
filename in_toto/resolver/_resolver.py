@@ -1,42 +1,19 @@
 """Resolver interface and default implementation for files. """
 import logging
 import os
+from itertools import combinations
 from os.path import basename, exists, isdir, isfile, join, normpath
 from typing import List
 
 from pathspec import GitIgnoreSpec
-
-# from abc import ABCMeta, abstractmethod
+from securesystemslib.exceptions import FormatError
 from securesystemslib.hash import digest_filename
+
+from in_toto.exceptions import PrefixError
 
 logger = logging.getLogger(__name__)
 
 _HASH_ALGORITHM = "sha256"
-
-
-# TODO: uncoment to add Resolver, also udate
-# - resolver/__init__ (docstring, RESOLVER_FOR_URI_SCHEME)
-# - make FileResolver inherit
-# - use in runlib
-# RESOLVER_FOR_URI_SCHEME = {}
-
-# class Resolver(metaclass=ABCMeta):
-#   """Resolver interface and factory. """
-
-#   @classmethod
-#   def for_uri(cls, uri):
-#     """Create matching resolver for passed uri. """
-#     scheme, _, _ = uri.partition(":")
-
-#     if scheme not in RESOLVER_FOR_URI_SCHEME:
-#         return FileResolver(uri)
-
-#     return RESOLVER_FOR_URI_SCHEME[scheme](uri)
-
-# @abstractmethod
-# def hash_artifacts(self):
-#   """Return hashes for one or more artifacts resolved at this instance uri. """
-#   raise NotImplementedError
 
 
 class FileResolver:
@@ -61,13 +38,19 @@ class FileResolver:
             if not isinstance(val, list) or not all(
                 isinstance(i, str) for i in val
             ):
-                raise ValueError(f"'{name}' must be list of strings")
+                # FIXME: Uses FormatError for backwards-compat. Should be ValueError.
+                raise FormatError(f"'{name}' must be list of strings")
+
+        for a, b in combinations(lstrip_paths, 2):
+            if a.startswith(b) or b.startswith(a):
+                raise PrefixError(
+                    f"'{a}' and '{b}' triggered a left substring error"
+                )
 
         # Compile gitignore-style patterns
         self._exclude_filter = GitIgnoreSpec.from_lines(
             "gitwildmatch", exclude_patterns
         )
-
         self._base_path = base_path
         self._follow_symlink_dirs = follow_symlink_dirs
         self._normalize_line_endings = normalize_line_endings
@@ -84,34 +67,40 @@ class FileResolver:
         )
         return {_HASH_ALGORITHM: digest.hexdigest()}
 
-    def _mangle(self, name):
-        # Collapse redundant separators and up-level references
-        # (on Windows this converts forward slashes to backward slashes
-        name = normpath(name)
-
-        # Normalize slashes to provide consistency between windows and *nix
-        # FIXME: This breaks *nix paths that contain backward slashes.
+    def _mangle(self, name, existing_names):
+        # Normalize slashes to provide metadata consistency between platforms
+        # FIXME: This breaks Unix paths that contain backward slashes.
         name = name.replace("\\", "/")
 
-        # Left-strip prefix (first match only!!)
+        # Left-strip prefix with first match
         for prefix in self._lstrip_paths:
             if name.startswith(prefix):
                 name = name[len(prefix) :]
                 break
 
+        if name in existing_names:
+            raise PrefixError(
+                "Prefix selection has resulted in non unique dictionary key '{name}'"
+            )
+
         return name
 
-
     def hash_artifacts(self, uris):
-        artifact_hashes = {}
+        hashes = {}
 
-        # Temporarily change into base path dir if set
         if self._base_path:
             original_cwd = os.getcwd()
-            os.chdir(self._base_path)
+            # FIXME: Re-raise seems unnecessary and is only kept for backwards-compat.
+            try:
+                os.chdir(self._base_path)
+            except Exception as e:
+                raise ValueError(
+                    f"Could not use '{self._base_path}' as base path: '{e}'"
+                ) from e
 
         for uri in uris:
-            # Return if the artifact should be ignored or does not exist
+            uri = normpath(uri)
+
             if self._exclude(uri):
                 continue
 
@@ -120,22 +109,21 @@ class FileResolver:
                 continue
 
             if isfile(uri):
-                artifact_hashes[self._mangle(uri)] = self._hash(uri)
+                hashes[self._mangle(uri, hashes)] = self._hash(uri)
 
             if isdir(uri):
                 for dirpath, dirnames, filenames in os.walk(
                     uri, followlinks=self._follow_symlink_dirs
                 ):
-                    # Apply include patterns to normalized directory names alone
-                    # - Assign remaining dirs so that walk recurses only into remaining firs
-                    # - Use generator comprehension to not create unnecessary copies
-                    # FIXME: is this too much inline magic?
+                    # Filter directories here to avoid unnecessary recursion below
                     dirnames[:] = [
-                        d for d in dirnames if not self._exclude(join(dirpath, d))
+                        d
+                        for d in dirnames
+                        if not self._exclude(join(dirpath, d))
                     ]
 
                     for name in filenames:
-                        path = join(dirpath, name)
+                        path = normpath(join(dirpath, name))
 
                         if self._exclude(path):
                             continue
@@ -147,10 +135,10 @@ class FileResolver:
                             )
                             continue
 
-                        artifact_hashes[self._mangle(path)] = self._hash(path)
+                        hashes[self._mangle(path, hashes)] = self._hash(path)
 
         # Change back to where original current working dir
         if self._base_path:
             os.chdir(original_cwd)
 
-        return artifact_hashes
+        return hashes
