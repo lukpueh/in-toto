@@ -2,6 +2,7 @@ name: Run in-toto tests and linter
 
 on:
   push:
+  workflow_dispatch:
 
 jobs:
   build:
