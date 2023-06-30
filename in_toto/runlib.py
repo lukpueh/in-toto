@@ -41,7 +41,8 @@ import securesystemslib.exceptions
 import securesystemslib.formats
 import securesystemslib.gpg
 import securesystemslib.hash
-from securesystemslib.signer import Signature, SSlibSigner
+from securesystemslib.signer import Key, Signature, Signer
+from securesystemslib.signer._signer import CryptoSigner
 
 import in_toto.exceptions
 import in_toto.settings
@@ -392,6 +393,49 @@ def _check_match_signing_key(signing_key):
         )
 
 
+def _parse_signer_args(
+    signer,
+    signing_key,
+    gpg_keyid,
+    gpg_use_default,
+    gpg_home,
+    raise_on_none=False,
+):
+    """Helper to parse key args in run and record methods."""
+
+    if signer:
+        if not isinstance(signer, Signer):
+            raise ValueError("signer must be a Signer instance")
+
+        LOG.info("Signing link metadata using passed signer...")
+        return signer
+
+    if signing_key:
+        # TODO: Add deprecation message
+        _check_match_signing_key(signing_key)
+        LOG.info("Signing link metadata using passed key...")
+        return CryptoSigner.from_securesystemslib_key(signing_key)
+
+    if gpg_keyid:
+        # TODO: Add deprecation message
+        securesystemslib.formats.KEYID_SCHEMA.check_match(gpg_keyid)
+        LOG.info("Signing link metadata using passed GPG keyid...")
+        return GPGSigner(keyid=gpg_keyid, homedir=gpg_home)
+
+    if gpg_use_default:
+        # TODO: Add deprecation message
+        LOG.info("Signing link metadata using default GPG key ...")
+        return GPGSigner(keyid=None, homedir=gpg_home)
+
+    if raise_on_none:
+        raise ValueError(
+            "Pass either a signer, a signing key, a gpg keyid or set"
+            " gpg_use_default to True!"
+        )
+
+    return None
+
+
 def in_toto_run(
     name,
     material_list,
@@ -411,14 +455,15 @@ def in_toto_run(
     metadata_directory=None,
     use_dsse=False,
     timeout=in_toto.settings.LINK_CMD_EXEC_TIMEOUT,
+    signer=None,
 ):
     """Performs a supply chain step or inspection generating link metadata.
 
   Executes link_cmd_args, recording paths and hashes of files before and after
   command execution (aka. artifacts) in a link metadata file. The metadata is
-  signed with the passed signing_key, a gpg key identified by its ID, or the
-  default gpg key. If multiple key arguments are passed, only one key is used
-  in above order of precedence. The resulting link file is written to
+  signed with the passed signer, signing_key, a gpg key identified by its ID, or
+  the default gpg key. If multiple key arguments are passed, only one key is
+  used in above order of precedence. The resulting link file is written to
   ``STEP-NAME.KEYID-PREFIX.link``. If no key argument is passed the link
   metadata is neither signed nor written to disk.
 
@@ -475,8 +520,11 @@ def in_toto_run(
     use_dsse (optional): A boolean indicating if DSSE should be used to
         generate metadata.
 
-    timeout (optional): An integer indicating the max timeout in seconds 
+    timeout (optional): An integer indicating the max timeout in seconds
         for this command. Default is 10 seconds.
+
+    signer (optional): A securesystemslib Signer instance used to
+        sign the resulting link metadata.
 
   Raises:
     securesystemslib.exceptions.FormatError: Passed arguments are malformed.
@@ -514,11 +562,9 @@ def in_toto_run(
 
     LOG.info("Running '%s'...", name)
 
-    # Check key formats to fail early
-    if signing_key:
-        _check_match_signing_key(signing_key)
-    if gpg_keyid:
-        securesystemslib.formats.KEYID_SCHEMA.check_match(gpg_keyid)
+    signer = _parse_signer_args(
+        signer, signing_key, gpg_keyid, gpg_use_default, gpg_home
+    )
 
     if exclude_patterns:
         securesystemslib.formats.NAMES_SCHEMA.check_match(exclude_patterns)
@@ -584,19 +630,6 @@ def in_toto_run(
         LOG.info("Generating link metadata using Metablock...")
         link_metadata = Metablock(signed=link, compact_json=compact_json)
 
-    signer = None
-    if signing_key:
-        LOG.info("Signing link metadata using passed key...")
-        signer = SSlibSigner(signing_key)
-
-    elif gpg_keyid:
-        LOG.info("Signing link metadata using passed GPG keyid...")
-        signer = GPGSigner(keyid=gpg_keyid, homedir=gpg_home)
-
-    elif gpg_use_default:
-        LOG.info("Signing link metadata using default GPG key ...")
-        signer = GPGSigner(keyid=None, homedir=gpg_home)
-
     # We need the signature's keyid to write the link to keyid infix'ed filename
     if signer:
         signature = link_metadata.create_signature(signer)
@@ -626,12 +659,13 @@ def in_toto_record_start(
     normalize_line_endings=False,
     lstrip_paths=None,
     use_dsse=False,
+    signer=None,
 ):
     """Generates preliminary link metadata.
 
-  Records paths and hashes of materials in a preliminary link metadata file.
-  The metadata is signed with the passed signing_key, a gpg key identified by
-  its ID, or the default gpg key. If multiple key arguments are passed, only
+  Records paths and hashes of materials in a preliminary link metadata file. The
+  metadata is signed with the passed signer, signing_key, a gpg key identified
+  by its ID, or the default gpg key. If multiple key arguments are passed, only
   one key is used in above order of precedence. At least one key argument must
   be passed. The resulting link file is written to
   ``.STEP-NAME.KEYID-PREFIX.link-unfinished``.
@@ -677,6 +711,9 @@ def in_toto_record_start(
     use_dsse (optional): A boolean indicating if DSSE should be used to
         generate metadata.
 
+    signer (optional): A securesystemslib Signer instance used to
+        sign the resulting link metadata.
+
   Raises:
     securesystemslib.exceptions.FormatError: Passed arguments are malformed.
 
@@ -710,18 +747,14 @@ def in_toto_record_start(
 
     LOG.info("Start recording '%s'...", step_name)
 
-    # Fail if there is no signing key arg at all
-    if not signing_key and not gpg_keyid and not gpg_use_default:
-        raise ValueError(
-            "Pass either a signing key, a gpg keyid or set"
-            " gpg_use_default to True!"
-        )
-
-    # Check key formats to fail early
-    if signing_key:
-        _check_match_signing_key(signing_key)
-    if gpg_keyid:
-        securesystemslib.formats.KEYID_SCHEMA.check_match(gpg_keyid)
+    signer = _parse_signer_args(
+        signer,
+        signing_key,
+        gpg_keyid,
+        gpg_use_default,
+        gpg_home,
+        raise_on_none=True,
+    )
 
     if exclude_patterns:
         securesystemslib.formats.NAMES_SCHEMA.check_match(exclude_patterns)
@@ -762,18 +795,6 @@ def in_toto_record_start(
         LOG.info("Generating link metadata using Metablock...")
         link_metadata = Metablock(signed=link)
 
-    if signing_key:
-        LOG.info("Signing link metadata using passed key...")
-        signer = SSlibSigner(signing_key)
-
-    elif gpg_keyid:
-        LOG.info("Signing link metadata using passed GPG keyid...")
-        signer = GPGSigner(keyid=gpg_keyid, homedir=gpg_home)
-
-    else:  # (gpg_use_default)
-        LOG.info("Signing link metadata using default GPG key ...")
-        signer = GPGSigner(keyid=None, homedir=gpg_home)
-
     signature = link_metadata.create_signature(signer)
     # We need the signature's keyid to write the link to keyid infix'ed filename
     signing_keyid = signature.keyid
@@ -801,16 +822,17 @@ def in_toto_record_stop(
     command=None,
     byproducts=None,
     environment=None,
+    signer=None,
 ):
     """Finalizes preliminary link metadata generated with in_toto_record_start.
 
   Loads preliminary link metadata file, verifies its signature, and records
   paths and hashes as products, thus finalizing the link metadata. The metadata
-  is signed with the passed signing_key, a gpg key identified by its ID, or the
-  default gpg key. If multiple key arguments are passed, only one key is used
-  in above order of precedence. At least one key argument must be passed and it
-  must be the same as the one used to sign the preliminary link metadata file.
-  The resulting link file is written to ``STEP-NAME.KEYID-PREFIX.link``.
+  is signed with the passed signer, signing_key, a gpg key identified by its ID,
+  or the default gpg key. If multiple key arguments are passed, only one key is
+  used in above order of precedence. At least one key argument must be passed
+  and it must be the same as the one used to sign the preliminary link metadata
+  file. The resulting link file is written to ``STEP-NAME.KEYID-PREFIX.link``.
 
   Use this function together with in_toto_record_start as an alternative to
   in_toto_run, in order to provide evidence for supply chain steps that cannot
@@ -867,6 +889,9 @@ def in_toto_record_stop(
               "workdir": "<CWD when executing link command>"
             }
 
+    signer (optional): A securesystemslib Signer instance used to
+        sign the resulting link metadata.
+
   Raises:
     securesystemslib.exceptions.FormatError: Passed arguments are malformed.
 
@@ -903,17 +928,14 @@ def in_toto_record_stop(
     # pylint: disable=too-many-branches, too-many-locals, too-many-statements
     LOG.info("Stop recording '%s'...", step_name)
 
-    # Check that we have something to sign and if the formats are right
-    if not signing_key and not gpg_keyid and not gpg_use_default:
-        raise ValueError(
-            "Pass either a signing key, a gpg keyid or set"
-            " gpg_use_default to True"
-        )
-
-    if signing_key:
-        _check_match_signing_key(signing_key)
-    if gpg_keyid:
-        securesystemslib.formats.KEYID_SCHEMA.check_match(gpg_keyid)
+    signer = _parse_signer_args(
+        signer,
+        signing_key,
+        gpg_keyid,
+        gpg_use_default,
+        gpg_home,
+        raise_on_none=True,
+    )
 
     if exclude_patterns:
         securesystemslib.formats.NAMES_SCHEMA.check_match(exclude_patterns)
@@ -1032,16 +1054,6 @@ def in_toto_record_stop(
     else:
         LOG.info("Generating link metadata using DSSE...")
         link_metadata = Envelope.from_signable(link)
-
-    if signing_key:
-        LOG.info("Updating signature with key '{:.8}...'...".format(keyid))
-        signer = SSlibSigner(signing_key)
-
-    else:  # gpg_keyid or gpg_use_default
-        # In both cases we use the keyid we got from verifying the preliminary
-        # link signature above.
-        LOG.info("Updating signature with gpg key '{:.8}...'...".format(keyid))
-        signer = GPGSigner(keyid=keyid, homedir=gpg_home)
 
     link_metadata.create_signature(signer)
     fn = FILENAME_FORMAT.format(step_name=step_name, keyid=keyid)
