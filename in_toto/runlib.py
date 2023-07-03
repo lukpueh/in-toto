@@ -46,7 +46,7 @@ from securesystemslib.signer._signer import CryptoSigner
 
 import in_toto.exceptions
 import in_toto.settings
-from in_toto.models._signer import GPGSigner
+from in_toto.models._signer import GPGKey, GPGSigner
 from in_toto.models.link import (
     FILENAME_FORMAT,
     FILENAME_FORMAT_SHORT,
@@ -823,6 +823,7 @@ def in_toto_record_stop(
     byproducts=None,
     environment=None,
     signer=None,
+    verifier=None,
 ):
     """Finalizes preliminary link metadata generated with in_toto_record_start.
 
@@ -889,7 +890,7 @@ def in_toto_record_stop(
               "workdir": "<CWD when executing link command>"
             }
 
-    signer (optional): A securesystemslib Signer instance used to
+    signer_and_verifier (optional): A securesystemslib Signer instance used to
         sign the resulting link metadata.
 
   Raises:
@@ -928,6 +929,7 @@ def in_toto_record_stop(
     # pylint: disable=too-many-branches, too-many-locals, too-many-statements
     LOG.info("Stop recording '%s'...", step_name)
 
+    # TODO: # Deprecation warning: verifier will become mandatory
     signer = _parse_signer_args(
         signer,
         signing_key,
@@ -948,14 +950,27 @@ def in_toto_record_stop(
 
     # Load preliminary link file
     # If we have a signing key we can use the keyid to construct the name
-    if signing_key:
-        unfinished_fn = UNFINISHED_FILENAME_FORMAT.format(
-            step_name=step_name, keyid=signing_key["keyid"]
-        )
+    if verifier or signing_key or gpg_keyid:
+        if verifier:
+            if not isinstance(verifier, Key):
+                raise ValueError("verifier must be a Key instance")
 
-    # FIXME: Currently there is no way to know the default GPG key's keyid and
-    # so we glob for preliminary link files
-    else:
+        elif signing_key:
+            assert isinstance(signer, CryptoSigner)
+            verifier = signer.public_key
+
+        else:
+            assert isinstance(signer, GPGSigner)
+            verifier = GPGKey.from_keyring(gpg_keyid, gpg_home)
+
+        unfinished_fn = UNFINISHED_FILENAME_FORMAT.format(
+            step_name=step_name, keyid=verifier.keyid
+        )
+        link_metadata = Metadata.load(unfinished_fn)
+
+    elif gpg_use_default:
+        # We have no way to know the default GPG key's keyid and
+        # so we glob for preliminary link files
         unfinished_fn_glob = UNFINISHED_FILENAME_FORMAT_GLOB.format(
             step_name=step_name, pattern="*"
         )
@@ -979,49 +994,20 @@ def in_toto_record_stop(
             )
 
         unfinished_fn = unfinished_fn_list[0]
+        link_metadata = Metadata.load(unfinished_fn)
 
-    LOG.info("Loading preliminary link metadata '%s'...", unfinished_fn)
-    link_metadata = Metadata.load(unfinished_fn)
-
-    # The file must have been signed by the same key
-    # If we have a signing_key we use it for verification as well
-    if signing_key:
-        LOG.info(
-            "Verifying preliminary link signature using passed signing key..."
-        )
-        keyid = signing_key["keyid"]
-        verification_key = signing_key
-
-    elif gpg_keyid:
-        LOG.info("Verifying preliminary link signature using passed gpg key...")
-        gpg_pubkey = securesystemslib.gpg.functions.export_pubkey(
-            gpg_keyid, gpg_home
-        )
-        keyid = gpg_pubkey["keyid"]
-        verification_key = gpg_pubkey
-
-    else:  # must be gpg_use_default
-        # FIXME: Currently there is no way to know the default GPG key's keyid
-        # before signing. As a workaround we extract the keyid of the preliminary
-        # Link file's signature and try to export a pubkey from the gpg
-        # home directory. We do this even if a gpg_keyid was specified, because gpg
-        # accepts many different ids (mail, name, parts of an id, ...) but we
-        # need a specific format.
-        LOG.info(
-            "Verifying preliminary link signature using default gpg key..."
-        )
-        # signatures are objects in DSSE.
         sig = link_metadata.signatures[0]
         if isinstance(sig, Signature):
             keyid = sig.keyid
         else:
             keyid = sig["keyid"]
-        gpg_pubkey = securesystemslib.gpg.functions.export_pubkey(
-            keyid, gpg_home
-        )
-        verification_key = gpg_pubkey
 
-    link_metadata.verify_signature(verification_key)
+        verifier = GPGKey.from_keyring(keyid, gpg_home)
+
+    else:
+        raise ValueError("need to pass verifier")
+
+    link_metadata.verify_signature(verifier.to_dict())
 
     LOG.info("Extracting Link from metadata...")
     link = link_metadata.get_payload()
