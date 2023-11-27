@@ -32,9 +32,7 @@ from in_toto.models.link import UNFINISHED_FILENAME_FORMAT
 from tests.common import CliTestCase, GenKeysMixin, GPGKeysMixin, TmpDirMixin
 
 
-class TestInTotoRecordTool(
-    CliTestCase, TmpDirMixin, GPGKeysMixin, GenKeysMixin
-):
+class TestInTotoRecordTool(CliTestCase, TmpDirMixin, GPGKeysMixin):
     """Test in_toto_record's main() - requires sys.argv patching; and
     in_toto_record_start/in_toto_record_stop - calls runlib and error logs/exits
     on Exception."""
@@ -47,7 +45,6 @@ class TestInTotoRecordTool(
         generate key pair, dummy artifact and base arguments."""
         cls.set_up_test_dir()
         cls.set_up_gpg_keys()
-        cls.set_up_keys()
 
         cls.test_artifact1 = "test_artifact1"
         cls.test_artifact2 = "test_artifact2"

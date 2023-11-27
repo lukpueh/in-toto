@@ -155,39 +155,21 @@ class TestLayoutMethods(unittest.TestCase, TmpDirMixin, GPGKeysMixin):
         layout = Layout()
         self.assertEqual(len(layout.get_functionary_key_id_list()), 0)
 
-        layout.add_functionary_keys_from_paths(
-            [self.pubkey_path1, self.pubkey_path2]
-        )
-
         layout.add_functionary_keys_from_gpg_keyids(
             [self.gpg_key_768c43, self.gpg_key_85da58], gpg_home=self.gnupg_home
         )
 
         layout._validate_keys()
 
-        self.assertEqual(len(layout.get_functionary_key_id_list()), 4)
+        self.assertEqual(len(layout.get_functionary_key_id_list()), 2)
 
         # Must be a valid key object
         with self.assertRaises(securesystemslib.exceptions.FormatError):
             layout.add_functionary_key("abcd")
 
-        # Must be pubkey and not private key
-        with self.assertRaises(securesystemslib.exceptions.Error):
-            layout.add_functionary_key_from_path(self.key_path)
-
-        # Must be a valid path
-        with self.assertRaises(securesystemslib.exceptions.FormatError):
-            layout.add_functionary_key_from_path(123)
-
         # Must be a valid keyid
         with self.assertRaises(securesystemslib.exceptions.FormatError):
             layout.add_functionary_key_from_gpg_keyid("abcdefg")
-
-        # Must be a list of paths
-        with self.assertRaises(securesystemslib.exceptions.FormatError):
-            layout.add_functionary_keys_from_paths("abcd")
-        with self.assertRaises(securesystemslib.exceptions.FormatError):
-            layout.add_functionary_keys_from_paths([1])
 
         # Must be a list of keyids
         with self.assertRaises(securesystemslib.exceptions.FormatError):

@@ -28,15 +28,13 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-import securesystemslib.interface  # pylint: disable=unused-import
-
 from in_toto.in_toto_run import main as in_toto_run_main
 from in_toto.models.link import FILENAME_FORMAT
 from in_toto.models.metadata import Metablock, Metadata
-from tests.common import CliTestCase, GenKeysMixin, GPGKeysMixin, TmpDirMixin
+from tests.common import CliTestCase, GPGKeysMixin, TmpDirMixin
 
 
-class TestInTotoRunTool(CliTestCase, TmpDirMixin, GPGKeysMixin, GenKeysMixin):
+class TestInTotoRunTool(CliTestCase, TmpDirMixin, GPGKeysMixin):
     """Test in_toto_run's main() - requires sys.argv patching; and
     in_toto_run- calls runlib and error logs/exits on Exception."""
 
@@ -400,9 +398,7 @@ class TestInTotoRunTool(CliTestCase, TmpDirMixin, GPGKeysMixin, GenKeysMixin):
             link_path.unlink()
 
 
-class TestInTotoRunToolWithDSSE(
-    CliTestCase, TmpDirMixin, GPGKeysMixin, GenKeysMixin
-):
+class TestInTotoRunToolWithDSSE(CliTestCase, TmpDirMixin, GPGKeysMixin):
     """Test in_toto_run's main() with --use-dsse argument - requires sys.argv
     patching; and in_toto_run- calls runlib and error logs/exits on Exception.
     """
