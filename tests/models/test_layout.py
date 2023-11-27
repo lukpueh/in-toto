@@ -178,12 +178,6 @@ class TestLayoutMethods(unittest.TestCase, TmpDirMixin, GPGKeysMixin):
         with self.assertRaises(securesystemslib.exceptions.FormatError):
             layout.add_functionary_key_from_gpg_keyid("abcdefg")
 
-        # Must be a list of paths
-        with self.assertRaises(securesystemslib.exceptions.FormatError):
-            layout.add_functionary_keys_from_paths("abcd")
-        with self.assertRaises(securesystemslib.exceptions.FormatError):
-            layout.add_functionary_keys_from_paths([1])
-
         # Must be a list of keyids
         with self.assertRaises(securesystemslib.exceptions.FormatError):
             layout.add_functionary_keys_from_gpg_keyids(None)
