@@ -297,38 +297,6 @@ class Metablock(Metadata, ValidationMixin):
 
         return signature
 
-    def sign(self, key):
-        """Creates signature over signable with key and adds it to signatures.
-
-    Uses the UTF-8 encoded canonical JSON byte representation of the signable
-    attribute to create signatures deterministically.
-
-    Attributes:
-      key: A signing key.
-
-    Raises:
-      securesystemslib.exceptions.FormatError: Key argument is malformed.
-      securesystemslib.exceptions.CryptoError, \
-              securesystemslib.exceptions.UnsupportedAlgorithmError:
-          Signing errors.
-
-    Returns:
-      The signature.
-
-    .. deprecated:: 2.2.0
-        Please use ``Metablock.create_signature()`` instead.
-
-    """
-        _check_signing_key(key)
-
-        signature = securesystemslib.keys.create_signature(
-            key, self.signed.signable_bytes
-        )
-
-        self.signatures.append(signature)
-
-        return signature
-
     def sign_gpg(self, gpg_keyid=None, gpg_home=None):
         """Creates signature over signable with gpg and adds it to signatures.
 
