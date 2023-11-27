@@ -30,7 +30,6 @@ import attr
 import securesystemslib.exceptions
 import securesystemslib.formats
 import securesystemslib.gpg.functions
-import securesystemslib.keys
 from securesystemslib.dsse import Envelope as SSlibEnvelope
 from securesystemslib.exceptions import (
     UnverifiedSignatureError,
@@ -292,35 +291,6 @@ class Metablock(Metadata, ValidationMixin):
     def create_signature(self, signer: Signer):
         signature = signer.sign(self.signed.signable_bytes)
         self.signatures.append(signature.to_dict())
-
-        return signature
-
-    def sign(self, key):
-        """Creates signature over signable with key and adds it to signatures.
-
-    Uses the UTF-8 encoded canonical JSON byte representation of the signable
-    attribute to create signatures deterministically.
-
-    Attributes:
-      key: A signing key. The format is securesystemslib.formats.KEY_SCHEMA.
-
-    Raises:
-      securesystemslib.exceptions.FormatError: Key argument is malformed.
-      securesystemslib.exceptions.CryptoError, \
-              securesystemslib.exceptions.UnsupportedAlgorithmError:
-          Signing errors.
-
-    Returns:
-      The signature. Format is securesystemslib.formats.SIGNATURE_SCHEMA.
-
-    """
-        securesystemslib.formats.KEY_SCHEMA.check_match(key)
-
-        signature = securesystemslib.keys.create_signature(
-            key, self.signed.signable_bytes
-        )
-
-        self.signatures.append(signature)
 
         return signature
 

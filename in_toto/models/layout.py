@@ -40,7 +40,6 @@ import attr
 import securesystemslib.exceptions
 import securesystemslib.formats
 import securesystemslib.gpg.functions
-import securesystemslib.interface
 import securesystemslib.schema
 from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
@@ -304,28 +303,6 @@ class Layout(Signable):
         self.keys[keyid] = key
         return key
 
-    def add_functionary_key_from_path(self, key_path):
-        """Loads key from disk and adds as functionary key to layout.
-
-        Arguments:
-          key_path: A path to a PEM-formatted RSA public key. Format is
-              securesystemslib.formats.PATH_SCHEMA.
-
-        Raises:
-          securesystemslib.exceptions.FormatError: Argument is malformed.
-          securesystemslib.exceptions.Error: Key cannot be imported.
-
-        Returns:
-          The added functionary public key.
-
-        """
-        securesystemslib.formats.PATH_SCHEMA.check_match(key_path)
-        key = securesystemslib.interface.import_rsa_publickey_from_file(
-            key_path
-        )
-
-        return self.add_functionary_key(key)
-
     def add_functionary_key_from_gpg_keyid(self, gpg_keyid, gpg_home=None):
         """Loads key from gpg keychain and adds as functionary key to layout.
 
@@ -353,30 +330,6 @@ class Layout(Signable):
             gpg_keyid, homedir=gpg_home
         )
         return self.add_functionary_key(key)
-
-    def add_functionary_keys_from_paths(self, key_path_list):
-        """Loads keys from disk and adds as functionary keys to layout.
-
-        Arguments:
-          key_path_list: A list of paths to PEM-formatted RSA public keys. Format
-              of each path is securesystemslib.formats.PATH_SCHEMA.
-
-        Raises:
-          securesystemslib.exceptions.FormatError: Argument is malformed.
-          securesystemslib.exceptions.Error: A key cannot be imported.
-
-        Returns:
-          A dictionary of the added functionary keys, with keyids as dictionary
-          keys and keys as values.
-
-        """
-        securesystemslib.formats.PATHS_SCHEMA.check_match(key_path_list)
-        key_dict = {}
-        for key_path in key_path_list:
-            key = self.add_functionary_key_from_path(key_path)
-            key_dict[key["keyid"]] = key
-
-        return key_dict
 
     def add_functionary_keys_from_gpg_keyids(
         self, gpg_keyid_list, gpg_home=None

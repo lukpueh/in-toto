@@ -41,7 +41,7 @@ import securesystemslib.exceptions
 import securesystemslib.formats
 import securesystemslib.gpg
 import securesystemslib.hash
-from securesystemslib.signer import Key, Signature, Signer, SSlibSigner
+from securesystemslib.signer import Key, Signature, Signer
 
 import in_toto.exceptions
 import in_toto.settings
@@ -389,18 +389,6 @@ def in_toto_mock(name, link_cmd_args, use_dsse=False):
     return link_metadata
 
 
-def _check_match_signing_key(signing_key):
-    """Helper method to check if the signing_key has securesystemslib's
-    KEY_SCHEMA and the private part is not empty.
-    # FIXME: Add private key format check to formats
-    """
-    securesystemslib.formats.KEY_SCHEMA.check_match(signing_key)
-    if not signing_key["keyval"].get("private"):
-        raise securesystemslib.exceptions.FormatError(
-            "Signing key needs to be a private key."
-        )
-
-
 def _check_signer(signer):
     if not isinstance(signer, Signer):
         raise ValueError("signer must be a Signer instance")
@@ -413,8 +401,8 @@ def _check_signer(signer):
         raise ValueError("only Signer instances with public key supported")
 
 
-def _require_signing_arg(signer, signing_key, gpg_keyid, gpg_use_default):
-    if not any([signer, signing_key, gpg_keyid, gpg_use_default]):
+def _require_signing_arg(signer, gpg_keyid, gpg_use_default):
+    if not any([signer, gpg_keyid, gpg_use_default]):
         raise ValueError(
             "Pass either a signer, a signing key, a gpg keyid or set"
             " gpg_use_default to True!"
@@ -427,7 +415,6 @@ def in_toto_run(
     product_list,
     link_cmd_args,
     record_streams=False,
-    signing_key=None,
     gpg_keyid=None,
     gpg_use_default=False,
     gpg_home=None,
@@ -554,9 +541,6 @@ def in_toto_run(
     if signer:
         _check_signer(signer)
 
-    if signing_key:
-        _check_match_signing_key(signing_key)
-
     if gpg_keyid:
         securesystemslib.formats.KEYID_SCHEMA.check_match(gpg_keyid)
 
@@ -627,10 +611,6 @@ def in_toto_run(
     if signer:
         LOG.info("Signing link metadata using passed signer...")
 
-    elif signing_key:
-        LOG.info("Signing link metadata using passed key...")
-        signer = SSlibSigner(signing_key)
-
     elif gpg_keyid:
         LOG.info("Signing link metadata using passed GPG keyid...")
         signer = GPGSigner(keyid=gpg_keyid, homedir=gpg_home)
@@ -658,7 +638,6 @@ def in_toto_run(
 def in_toto_record_start(
     step_name,
     material_list,
-    signing_key=None,
     gpg_keyid=None,
     gpg_use_default=False,
     gpg_home=None,
@@ -760,14 +739,11 @@ def in_toto_record_start(
     LOG.info("Start recording '%s'...", step_name)
 
     # Fail if there is no signing key arg at all
-    _require_signing_arg(signer, signing_key, gpg_keyid, gpg_use_default)
+    _require_signing_arg(signer, gpg_keyid, gpg_use_default)
 
     # Check key formats to fail early
     if signer:
         _check_signer(signer)
-
-    if signing_key:
-        _check_match_signing_key(signing_key)
 
     if gpg_keyid:
         securesystemslib.formats.KEYID_SCHEMA.check_match(gpg_keyid)
@@ -814,10 +790,6 @@ def in_toto_record_start(
     if signer:
         LOG.info("Signing link metadata using passed signer...")
 
-    elif signing_key:
-        LOG.info("Signing link metadata using passed key...")
-        signer = SSlibSigner(signing_key)
-
     elif gpg_keyid:
         LOG.info("Signing link metadata using passed GPG keyid...")
         signer = GPGSigner(keyid=gpg_keyid, homedir=gpg_home)
@@ -841,7 +813,6 @@ def in_toto_record_start(
 def in_toto_record_stop(
     step_name,
     product_list,
-    signing_key=None,
     gpg_keyid=None,
     gpg_use_default=False,
     gpg_home=None,
@@ -963,13 +934,10 @@ def in_toto_record_stop(
     LOG.info("Stop recording '%s'...", step_name)
 
     # Check that we have something to sign and if the formats are right
-    _require_signing_arg(signer, signing_key, gpg_keyid, gpg_use_default)
+    _require_signing_arg(signer, gpg_keyid, gpg_use_default)
 
     if signer:
         _check_signer(signer)
-
-    if signing_key:
-        _check_match_signing_key(signing_key)
 
     if gpg_keyid:
         securesystemslib.formats.KEYID_SCHEMA.check_match(gpg_keyid)
@@ -988,11 +956,6 @@ def in_toto_record_stop(
     if signer:
         unfinished_fn = UNFINISHED_FILENAME_FORMAT.format(
             step_name=step_name, keyid=signer.public_key.keyid
-        )
-
-    elif signing_key:
-        unfinished_fn = UNFINISHED_FILENAME_FORMAT.format(
-            step_name=step_name, keyid=signing_key["keyid"]
         )
 
     # FIXME: Currently there is no way to know the default GPG key's keyid and
@@ -1032,13 +995,6 @@ def in_toto_record_stop(
         keyid = signer.public_key.keyid
         verification_key = signer.public_key.to_dict()
         verification_key["keyid"] = keyid
-
-    elif signing_key:
-        LOG.info(
-            "Verifying preliminary link signature using passed signing key..."
-        )
-        keyid = signing_key["keyid"]
-        verification_key = signing_key
 
     elif gpg_keyid:
         LOG.info("Verifying preliminary link signature using passed gpg key...")
@@ -1109,10 +1065,6 @@ def in_toto_record_stop(
                 signer.public_key.keyid
             )
         )
-
-    elif signing_key:
-        LOG.info("Updating signature with key '{:.8}...'...".format(keyid))
-        signer = SSlibSigner(signing_key)
 
     else:  # gpg_keyid or gpg_use_default
         # In both cases we use the keyid we got from verifying the preliminary
