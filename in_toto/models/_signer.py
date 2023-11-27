@@ -15,7 +15,7 @@
   See LICENSE for licensing information.
 
 <Purpose>
-  Provides in-toto flavored GPGSigner, GPGSignature and GPGKey.
+  Provides in-toto flavored Signer implementations
 
 """
 
@@ -24,8 +24,49 @@ from typing import Any, Dict, List, Optional
 
 import securesystemslib.gpg.exceptions as gpg_exceptions
 import securesystemslib.gpg.functions as gpg
+from cryptography.hazmat.primitives.serialization import (
+    load_pem_private_key,
+    load_pem_public_key,
+)
 from securesystemslib import exceptions
-from securesystemslib.signer import Key, SecretsHandler, Signature, Signer
+from securesystemslib.signer import (
+    CryptoSigner,
+    Key,
+    SecretsHandler,
+    Signature,
+    Signer,
+    SSlibKey,
+)
+
+
+def load_crypto_signer_from_pkcs8_file(
+    path: str, password: Optional[bytes] = None
+) -> CryptoSigner:
+    """Internal helper to load CryptoSigner from PKCS8/PEM file."""
+    with open(path, "rb") as f:
+        data = f.read()
+
+    private_key = load_pem_private_key(data, password)
+    signer = CryptoSigner(private_key)
+
+    return signer
+
+
+def load_public_key_from_file(path: str) -> Dict[str, Any]:
+    """Internal helper to load key from SubjectPublicKeyInfo/PEM file."""
+    with open(path, "rb") as f:
+        data = f.read()
+
+    crypto_public_key = load_pem_public_key(data)
+    key = SSlibKey.from_crypto(crypto_public_key)
+
+    # NOTE: Would be nice to support `Key` instances natively in in-toto.
+    # Until then we keep using the in-toto -tailored dict representation of
+    # `Key`, which is expected in metadata model and verifylib API.
+    key_dict = key.to_dict()
+    key_dict["keyid"] = key.keyid
+
+    return key_dict
 
 
 class GPGSignature(Signature):
