@@ -32,16 +32,24 @@ import shutil
 import sys
 import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
-from securesystemslib.interface import (
-    generate_and_write_ecdsa_keypair,
-    generate_and_write_ed25519_keypair,
-    generate_and_write_rsa_keypair,
-    generate_and_write_unencrypted_ecdsa_keypair,
-    generate_and_write_unencrypted_ed25519_keypair,
-    generate_and_write_unencrypted_rsa_keypair,
+from in_toto.models._signer import (
+    load_crypto_signer_from_pkcs8_file as load_signer,
 )
+from in_toto.models._signer import load_public_key_from_file as load_pubkey
+
+PEMS = Path(__file__).parent / "pems"
+
+
+class SignerStore:
+    rsa = load_signer(PEMS / "rsa_private_unencrypted.pem")
+    rsa_pub = load_pubkey(PEMS / "rsa_public.pem")
+    ecdsa = load_signer(PEMS / "ecdsa_private_unencrypted.pem")
+    ecdsa_pub = load_pubkey(PEMS / "ecdsa_public.pem")
+    ed25519 = load_signer(PEMS / "ed25519_private_unencrypted.pem")
+    ed25519_pub = load_pubkey(PEMS / "ed25519_public.pem")
 
 
 class TmpDirMixin:
@@ -83,41 +91,6 @@ class GPGKeysMixin:
         )
 
         shutil.copytree(gpg_keys, os.path.join(os.getcwd(), cls.gnupg_home))
-
-
-class GenKeysMixin:
-    """Mixin with classmethod to create cryptographic keys in cwd."""
-
-    key_pw = "pw"
-
-    @classmethod
-    def set_up_keys(cls):
-        """Generate securesystemslib test keys and write to CWD."""
-        # Generated unencrypted keys
-        cls.rsa_key_path = generate_and_write_unencrypted_rsa_keypair()
-        cls.rsa_key_id = os.path.basename(cls.rsa_key_path)
-
-        cls.ed25519_key_path = generate_and_write_unencrypted_ed25519_keypair()
-        cls.ed25519_key_id = os.path.basename(cls.ed25519_key_path)
-
-        cls.ecdsa_key_path = generate_and_write_unencrypted_ecdsa_keypair()
-        cls.ecdsa_key_id = os.path.basename(cls.ecdsa_key_path)
-
-        # Generate encrypted keys
-        cls.rsa_key_enc_path = generate_and_write_rsa_keypair(
-            password=cls.key_pw
-        )
-        cls.rsa_key_enc_id = os.path.basename(cls.rsa_key_enc_path)
-
-        cls.ed25519_key_enc_path = generate_and_write_ed25519_keypair(
-            password=cls.key_pw
-        )
-        cls.ed25519_key_enc_id = os.path.basename(cls.ed25519_key_enc_path)
-
-        cls.ecdsa_key_enc_path = generate_and_write_ecdsa_keypair(
-            password=cls.key_pw
-        )
-        cls.ecdsa_key_enc_id = os.path.basename(cls.ecdsa_key_enc_path)
 
 
 class CliTestCase(unittest.TestCase):
