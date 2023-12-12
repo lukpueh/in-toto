@@ -29,13 +29,7 @@ from unittest import mock
 
 from in_toto.in_toto_record import main as in_toto_record_main
 from in_toto.models.link import UNFINISHED_FILENAME_FORMAT
-from tests.common import (
-    PEMS,
-    CliTestCase,
-    GenKeysMixin,
-    GPGKeysMixin,
-    TmpDirMixin,
-)
+from tests.common import PEMS, CliTestCase, GPGKeysMixin, TmpDirMixin
 
 
 class TestInTotoRecordTool(CliTestCase, TmpDirMixin, GPGKeysMixin):
@@ -243,9 +237,7 @@ class TestInTotoRecordTool(CliTestCase, TmpDirMixin, GPGKeysMixin):
                 link_path.unlink()
 
 
-class TestInTotoRecordToolWithDSSE(
-    CliTestCase, TmpDirMixin, GPGKeysMixin, GenKeysMixin
-):
+class TestInTotoRecordToolWithDSSE(CliTestCase, TmpDirMixin, GPGKeysMixin):
     """Test in_toto_record's main() with --use-dsse argument - requires sys.argv
     patching; and in_toto_record_start/in_toto_record_stop - calls runlib and
     error logs/exits on Exception."""
@@ -257,8 +249,7 @@ class TestInTotoRecordToolWithDSSE(
         """Create and change into temporary directory,
         generate key pair, dummy artifact and base arguments."""
         cls.set_up_test_dir()
-        cls.set_up_keys()
-
+        cls.rsa_key_path = str(PEMS / "rsa_private_unencrypted.pem")
         cls.test_artifact1 = "test_artifact1"
         cls.test_artifact2 = "test_artifact2"
         Path(cls.test_artifact1).touch()
@@ -268,25 +259,14 @@ class TestInTotoRecordToolWithDSSE(
     def tearDownClass(cls):
         cls.tear_down_test_dir()
 
-    def test_start_stop(self):
+    def test_misc_options(self):
         """Test CLI command record start/stop with various arguments."""
-
-        # Start/stop recording using rsa key
-        args = [
-            "--step-name",
-            "test1",
-            "--key",
-            self.rsa_key_path,
-            "--use-dsse",
-        ]
-        self.assert_cli_sys_exit(["start"] + args, 0)
-        self.assert_cli_sys_exit(["stop"] + args, 0)
 
         # Start/stop with recording one artifact using rsa key
         args = [
             "--step-name",
             "test2",
-            "--key",
+            "--signing-key",
             self.rsa_key_path,
             "--use-dsse",
         ]
@@ -301,7 +281,7 @@ class TestInTotoRecordToolWithDSSE(
         args = [
             "--step-name",
             "test2.5",
-            "--key",
+            "--signing-key",
             self.rsa_key_path,
             "--use-dsse",
         ]
@@ -322,7 +302,7 @@ class TestInTotoRecordToolWithDSSE(
         args = [
             "--step-name",
             "test2.6",
-            "--key",
+            "--signing-key",
             self.rsa_key_path,
             "--base-path",
             self.test_dir,
@@ -335,7 +315,7 @@ class TestInTotoRecordToolWithDSSE(
         args = [
             "--step-name",
             "test3",
-            "--key",
+            "--signing-key",
             self.rsa_key_path,
             "--use-dsse",
         ]

@@ -30,12 +30,6 @@
 """
 import sys
 
-from in_toto import (
-    KEY_TYPE_ECDSA,
-    KEY_TYPE_ED25519,
-    KEY_TYPE_RSA,
-    SUPPORTED_KEY_TYPES,
-)
 from in_toto.settings import LINK_CMD_EXEC_TIMEOUT
 
 EXCLUDE_ARGS = ["--exclude"]
