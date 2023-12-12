@@ -141,9 +141,9 @@ SIGNING_KEY_KWARGS = {
     "metavar": "<path>",
     "dest": "signing_key",
     "help": (
-        "signing key in a a standard PKCS8/PEM format."
-        " Use '--password [<password>]' to pass a decryption password"
-        " or toggle a prompt, if the key es encrypted."
+        "signing key in a standard PKCS8/PEM format. Supported keytypes are"
+        " rsa, ed25519, ecdsa (nistp256). Use '--password [<password>]' to pass"
+        " a decryption password or toggle a prompt, if the key es encrypted."
     ),
 }
 
