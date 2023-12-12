@@ -33,6 +33,8 @@ from in_toto.models.link import FILENAME_FORMAT
 from in_toto.models.metadata import Metablock, Metadata
 from tests.common import CliTestCase, GPGKeysMixin, TmpDirMixin
 
+PEMS_DIR = Path(__file__).parent / "pems"
+
 
 class TestInTotoRunTool(CliTestCase, TmpDirMixin, GPGKeysMixin):
     """Test in_toto_run's main() - requires sys.argv patching; and
@@ -46,28 +48,13 @@ class TestInTotoRunTool(CliTestCase, TmpDirMixin, GPGKeysMixin):
         generate key pair, dummy artifact and base arguments."""
         cls.set_up_test_dir()
         cls.set_up_gpg_keys()
-        cls.set_up_keys()
 
         cls.test_step = "test_step"
-        cls.test_link_rsa = FILENAME_FORMAT.format(
-            step_name=cls.test_step, keyid=cls.rsa_key_id
-        )
-        cls.test_link_ed25519 = FILENAME_FORMAT.format(
-            step_name=cls.test_step, keyid=cls.ed25519_key_id
-        )
-        cls.test_link_ecdsa = FILENAME_FORMAT.format(
-            step_name=cls.test_step, keyid=cls.ecdsa_key_id
-        )
-        cls.test_link_rsa_enc = FILENAME_FORMAT.format(
-            step_name=cls.test_step, keyid=cls.rsa_key_enc_id
-        )
-        cls.test_link_ed25519_enc = FILENAME_FORMAT.format(
-            step_name=cls.test_step, keyid=cls.ed25519_key_enc_id
-        )
-        cls.test_link_ecdsa_enc = FILENAME_FORMAT.format(
-            step_name=cls.test_step, keyid=cls.ecdsa_key_enc_id
-        )
 
+        cls.rsa_key_path = str(PEMS_DIR / "rsa_private_unencrypted.pem")
+        cls.test_link_rsa = FILENAME_FORMAT.format(
+            step_name=cls.test_step, keyid="2f685fa7"
+        )
         cls.test_artifact = "test_artifact"
         Path(cls.test_artifact).touch()
 
@@ -85,7 +72,7 @@ class TestInTotoRunTool(CliTestCase, TmpDirMixin, GPGKeysMixin):
         args = [
             "--step-name",
             self.test_step,
-            "--key",
+            "--signing-key",
             self.rsa_key_path,
             "--",
             "python",
@@ -101,7 +88,7 @@ class TestInTotoRunTool(CliTestCase, TmpDirMixin, GPGKeysMixin):
         named_args = [
             "--step-name",
             self.test_step,
-            "--key",
+            "--signing-key",
             self.rsa_key_path,
             "--materials",
             self.test_artifact,
@@ -164,7 +151,7 @@ class TestInTotoRunTool(CliTestCase, TmpDirMixin, GPGKeysMixin):
         args = [
             "--step-name",
             self.test_step,
-            "--key",
+            "--signing-key",
             self.rsa_key_path,
             "--metadata-directory",
             tmp_dir,
@@ -178,77 +165,6 @@ class TestInTotoRunTool(CliTestCase, TmpDirMixin, GPGKeysMixin):
         linkpath = os.path.join(tmp_dir, self.test_link_rsa)
 
         self.assertTrue(os.path.exists(linkpath))
-
-    def test_main_with_unencrypted_ed25519_key(self):
-        """Test CLI command with ed25519 key."""
-        args = [
-            "-n",
-            self.test_step,
-            "--key",
-            self.ed25519_key_path,
-            "--key-type",
-            "ed25519",
-            "--",
-            "ls",
-        ]
-
-        self.assert_cli_sys_exit(args, 0)
-        self.assertTrue(os.path.exists(self.test_link_ed25519))
-
-    def test_main_with_unencrypted_ecdsa_key(self):
-        """Test CLI command with ecdsa key."""
-        args = [
-            "-n",
-            self.test_step,
-            "--key",
-            self.ecdsa_key_path,
-            "--key-type",
-            "ecdsa",
-            "--",
-            "ls",
-        ]
-
-        self.assert_cli_sys_exit(args, 0)
-        self.assertTrue(os.path.exists(self.test_link_ecdsa))
-
-    def test_main_with_encrypted_keys(self):
-        """Test CLI command with encrypted ed25519 key."""
-
-        for key_type, key_path, link_path in [
-            ("rsa", self.rsa_key_enc_path, self.test_link_rsa_enc),
-            ("ed25519", self.ed25519_key_enc_path, self.test_link_ed25519_enc),
-            ("ecdsa", self.ecdsa_key_enc_path, self.test_link_ecdsa_enc),
-        ]:
-            # Define common arguments passed to in in-toto-run below
-            args = [
-                "-n",
-                self.test_step,
-                "--key",
-                key_path,
-                "--key-type",
-                key_type,
-            ]
-            cmd = ["--", "python", "--version"]
-
-            # Make sure the link file to be generated doesn't already exist
-            self.assertFalse(os.path.exists(link_path))
-
-            # Test 1: Call in-toto-run entering signing key password on prompt
-            with mock.patch(
-                "securesystemslib.interface.get_password",
-                return_value=self.key_pw,
-            ):
-                self.assert_cli_sys_exit(args + ["--password"] + cmd, 0)
-
-            self.assertTrue(os.path.exists(link_path))
-            os.remove(link_path)
-
-            # Test 2: Call in-toto-run passing signing key password
-            self.assert_cli_sys_exit(
-                args + ["--password", self.key_pw] + cmd, 0
-            )
-            self.assertTrue(os.path.exists(link_path))
-            os.remove(link_path)
 
     def test_main_with_specified_gpg_key(self):
         """Test CLI command with specified gpg key."""
@@ -299,7 +215,7 @@ class TestInTotoRunTool(CliTestCase, TmpDirMixin, GPGKeysMixin):
             "in_toto_run.py",
             "--step-name",
             self.test_step,
-            "--key",
+            "--signing-key",
             self.rsa_key_path,
             "--no-command",
         ]
@@ -314,16 +230,22 @@ class TestInTotoRunTool(CliTestCase, TmpDirMixin, GPGKeysMixin):
         wrong_args_list = [
             [],
             ["--step-name", "some"],
-            ["--key", self.rsa_key_path],
+            ["--signing-key", self.rsa_key_path],
             ["--", "echo", "blub"],
-            ["--step-name", "test-step", "--key", self.rsa_key_path],
+            ["--step-name", "test-step", "--signing-key", self.rsa_key_path],
             ["--step-name", "--", "echo", "blub"],
-            ["--key", self.rsa_key_path, "--", "echo", "blub"],
-            ["--step-name", "test-step", "--key", self.rsa_key_path, "--"],
+            ["--signing-key", self.rsa_key_path, "--", "echo", "blub"],
             [
                 "--step-name",
                 "test-step",
-                "--key",
+                "--signing-key",
+                self.rsa_key_path,
+                "--",
+            ],
+            [
+                "--step-name",
+                "test-step",
+                "--signing-key",
                 self.rsa_key_path,
                 "--gpg",
                 "--",
@@ -342,7 +264,7 @@ class TestInTotoRunTool(CliTestCase, TmpDirMixin, GPGKeysMixin):
         args = [
             "--step-name",
             self.test_step,
-            "--key",
+            "--signing-key",
             "non-existing-key",
             "--",
             "echo",
@@ -352,19 +274,8 @@ class TestInTotoRunTool(CliTestCase, TmpDirMixin, GPGKeysMixin):
         self.assert_cli_sys_exit(args, 1)
         self.assertFalse(os.path.exists(self.test_link_rsa))
 
-    def test_main_encrypted_key_but_no_pw(self):
-        """Test CLI command exits 1 with encrypted key but no pw."""
-        args = ["-n", self.test_step, "--key", self.rsa_key_enc_path, "-x"]
-        self.assert_cli_sys_exit(args, 1)
-        self.assertFalse(os.path.exists(self.test_link_rsa_enc))
-
-        args = ["-n", self.test_step, "--key", self.ed25519_key_enc_path, "-x"]
-        self.assert_cli_sys_exit(args, 1)
-        self.assertFalse(os.path.exists(self.test_link_ed25519_enc))
-
     def test_pkcs8_signing_key(self):
         """Test in-toto-run, sign link with pkcs8 key file for each algo."""
-        pems_dir = Path(__file__).parent / "pems"
         args = ["-n", "foo", "-x", "--signing-key"]
         for algo, short_keyid in [
             ("rsa", "2f685fa7"),
@@ -374,13 +285,13 @@ class TestInTotoRunTool(CliTestCase, TmpDirMixin, GPGKeysMixin):
             link_path = Path(f"foo.{short_keyid}.link")
 
             # Use unencrypted key
-            pem_path = pems_dir / f"{algo}_private_unencrypted.pem"
+            pem_path = PEMS_DIR / f"{algo}_private_unencrypted.pem"
             self.assert_cli_sys_exit(args + [str(pem_path)], 0)
             self.assertTrue(link_path.exists())
             link_path.unlink()
 
             # Fail with encrypted key, but no pw
-            pem_path = pems_dir / f"{algo}_private_encrypted.pem"
+            pem_path = PEMS_DIR / f"{algo}_private_encrypted.pem"
             self.assert_cli_sys_exit(args + [str(pem_path)], 1)
             self.assertFalse(link_path.exists())
 
@@ -411,22 +322,12 @@ class TestInTotoRunToolWithDSSE(CliTestCase, TmpDirMixin, GPGKeysMixin):
         generate key pair, dummy artifact and base arguments."""
         cls.set_up_test_dir()
         cls.set_up_gpg_keys()
-        cls.set_up_keys()
 
         cls.test_step = "test_step"
+        cls.rsa_key_path = str(PEMS_DIR / "rsa_private_unencrypted.pem")
         cls.test_link_rsa = FILENAME_FORMAT.format(
-            step_name=cls.test_step, keyid=cls.rsa_key_id
+            step_name=cls.test_step, keyid="2f685fa7"
         )
-        cls.test_link_ed25519 = FILENAME_FORMAT.format(
-            step_name=cls.test_step, keyid=cls.ed25519_key_id
-        )
-        cls.test_link_rsa_enc = FILENAME_FORMAT.format(
-            step_name=cls.test_step, keyid=cls.rsa_key_enc_id
-        )
-        cls.test_link_ed25519_enc = FILENAME_FORMAT.format(
-            step_name=cls.test_step, keyid=cls.ed25519_key_enc_id
-        )
-
         cls.test_artifact = "test_artifact"
         Path(cls.test_artifact).touch()
 
@@ -444,7 +345,7 @@ class TestInTotoRunToolWithDSSE(CliTestCase, TmpDirMixin, GPGKeysMixin):
         args = [
             "--step-name",
             self.test_step,
-            "--key",
+            "--signing-key",
             self.rsa_key_path,
             "--use-dsse",
             "--",
@@ -461,7 +362,7 @@ class TestInTotoRunToolWithDSSE(CliTestCase, TmpDirMixin, GPGKeysMixin):
         named_args = [
             "--step-name",
             self.test_step,
-            "--key",
+            "--signing-key",
             self.rsa_key_path,
             "--materials",
             self.test_artifact,
@@ -535,7 +436,7 @@ class TestInTotoRunToolWithDSSE(CliTestCase, TmpDirMixin, GPGKeysMixin):
             "in_toto_run.py",
             "--step-name",
             self.test_step,
-            "--key",
+            "--signing-key",
             self.rsa_key_path,
             "--no-command",
             "--use-dsse",
@@ -546,8 +447,7 @@ class TestInTotoRunToolWithDSSE(CliTestCase, TmpDirMixin, GPGKeysMixin):
         self.assertTrue(os.path.exists(self.test_link_rsa))
 
     def test_pkcs8_signing_key(self):
-        """Test in-toto-run, sign link with pkcs8 key file for each algo."""
-        pems_dir = Path(__file__).parent / "pems"
+        """Test in-totqo-run, sign link with pkcs8 key file for each algo."""
         args = ["-n", "foo", "-x", "--use-dsse", "--signing-key"]
         for algo, short_keyid in [
             ("rsa", "2f685fa7"),
@@ -557,13 +457,13 @@ class TestInTotoRunToolWithDSSE(CliTestCase, TmpDirMixin, GPGKeysMixin):
             link_path = Path(f"foo.{short_keyid}.link")
 
             # Use unencrypted key
-            pem_path = pems_dir / f"{algo}_private_unencrypted.pem"
+            pem_path = PEMS_DIR / f"{algo}_private_unencrypted.pem"
             self.assert_cli_sys_exit(args + [str(pem_path)], 0)
             self.assertTrue(link_path.exists())
             link_path.unlink()
 
             # Fail with encrypted key, but no pw
-            pem_path = pems_dir / f"{algo}_private_encrypted.pem"
+            pem_path = PEMS_DIR / f"{algo}_private_encrypted.pem"
             self.assert_cli_sys_exit(args + [str(pem_path)], 1)
             self.assertFalse(link_path.exists())
 
