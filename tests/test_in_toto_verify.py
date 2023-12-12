@@ -31,11 +31,10 @@ from securesystemslib.gpg.constants import have_gpg
 from in_toto.in_toto_verify import main as in_toto_verify_main
 from in_toto.models._signer import load_crypto_signer_from_pkcs8_file
 from in_toto.models.metadata import Metadata
-from tests.common import CliTestCase, GPGKeysMixin, TmpDirMixin
+from tests.common import PEMS, CliTestCase, GPGKeysMixin, TmpDirMixin
 
 DEMO_FILES = Path(__file__).parent / "demo_files"
 DEMO_FILES_DSSE = Path(__file__).parent / "demo_dsse_files"
-PEMS = Path(__file__).parent / "pems"
 SCRIPTS = Path(__file__).parent / "scripts"
 
 

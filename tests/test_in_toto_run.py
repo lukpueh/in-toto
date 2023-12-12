@@ -31,9 +31,7 @@ from unittest import mock
 from in_toto.in_toto_run import main as in_toto_run_main
 from in_toto.models.link import FILENAME_FORMAT
 from in_toto.models.metadata import Metablock, Metadata
-from tests.common import CliTestCase, GPGKeysMixin, TmpDirMixin
-
-PEMS_DIR = Path(__file__).parent / "pems"
+from tests.common import PEMS, CliTestCase, GPGKeysMixin, TmpDirMixin
 
 
 class TestInTotoRunTool(CliTestCase, TmpDirMixin, GPGKeysMixin):
@@ -51,7 +49,7 @@ class TestInTotoRunTool(CliTestCase, TmpDirMixin, GPGKeysMixin):
 
         cls.test_step = "test_step"
 
-        cls.rsa_key_path = str(PEMS_DIR / "rsa_private_unencrypted.pem")
+        cls.rsa_key_path = str(PEMS / "rsa_private_unencrypted.pem")
         cls.test_link_rsa = FILENAME_FORMAT.format(
             step_name=cls.test_step, keyid="2f685fa7"
         )
@@ -285,13 +283,13 @@ class TestInTotoRunTool(CliTestCase, TmpDirMixin, GPGKeysMixin):
             link_path = Path(f"foo.{short_keyid}.link")
 
             # Use unencrypted key
-            pem_path = PEMS_DIR / f"{algo}_private_unencrypted.pem"
+            pem_path = PEMS / f"{algo}_private_unencrypted.pem"
             self.assert_cli_sys_exit(args + [str(pem_path)], 0)
             self.assertTrue(link_path.exists())
             link_path.unlink()
 
             # Fail with encrypted key, but no pw
-            pem_path = PEMS_DIR / f"{algo}_private_encrypted.pem"
+            pem_path = PEMS / f"{algo}_private_encrypted.pem"
             self.assert_cli_sys_exit(args + [str(pem_path)], 1)
             self.assertFalse(link_path.exists())
 
@@ -324,7 +322,7 @@ class TestInTotoRunToolWithDSSE(CliTestCase, TmpDirMixin, GPGKeysMixin):
         cls.set_up_gpg_keys()
 
         cls.test_step = "test_step"
-        cls.rsa_key_path = str(PEMS_DIR / "rsa_private_unencrypted.pem")
+        cls.rsa_key_path = str(PEMS / "rsa_private_unencrypted.pem")
         cls.test_link_rsa = FILENAME_FORMAT.format(
             step_name=cls.test_step, keyid="2f685fa7"
         )
@@ -457,13 +455,13 @@ class TestInTotoRunToolWithDSSE(CliTestCase, TmpDirMixin, GPGKeysMixin):
             link_path = Path(f"foo.{short_keyid}.link")
 
             # Use unencrypted key
-            pem_path = PEMS_DIR / f"{algo}_private_unencrypted.pem"
+            pem_path = PEMS / f"{algo}_private_unencrypted.pem"
             self.assert_cli_sys_exit(args + [str(pem_path)], 0)
             self.assertTrue(link_path.exists())
             link_path.unlink()
 
             # Fail with encrypted key, but no pw
-            pem_path = PEMS_DIR / f"{algo}_private_encrypted.pem"
+            pem_path = PEMS / f"{algo}_private_encrypted.pem"
             self.assert_cli_sys_exit(args + [str(pem_path)], 1)
             self.assertFalse(link_path.exists())
 

@@ -22,7 +22,7 @@ from pathlib import Path
 from unittest import mock
 
 from in_toto.in_toto_sign import main as in_toto_sign_main
-from tests.common import CliTestCase, GPGKeysMixin, TmpDirMixin
+from tests.common import PEMS, CliTestCase, GPGKeysMixin, TmpDirMixin
 
 
 class TestInTotoSignTool(CliTestCase, TmpDirMixin, GPGKeysMixin):
@@ -37,7 +37,6 @@ class TestInTotoSignTool(CliTestCase, TmpDirMixin, GPGKeysMixin):
         cls.set_up_gpg_keys()
 
         demo_files = Path(__file__).parent / "demo_files"
-        pems = Path(__file__).parent / "pems"
 
         layout_name = "demo.layout.template"
         link_name = "package.2f89b927.link"
@@ -49,17 +48,17 @@ class TestInTotoSignTool(CliTestCase, TmpDirMixin, GPGKeysMixin):
 
         cls.key_pw = "hunter2"
 
-        cls.alice_path = str(pems / "rsa_private_unencrypted.pem")
-        cls.alice_enc_path = str(pems / "rsa_private_encrypted.pem")
-        cls.alice_pub_path = str(pems / "rsa_public.pem")
+        cls.alice_path = str(PEMS / "rsa_private_unencrypted.pem")
+        cls.alice_enc_path = str(PEMS / "rsa_private_encrypted.pem")
+        cls.alice_pub_path = str(PEMS / "rsa_public.pem")
 
-        cls.bob_path = str(pems / "ecdsa_private_unencrypted.pem")
-        cls.bob_enc_path = str(pems / "ecdsa_private_encrypted.pem")
-        cls.bob_pub_path = str(pems / "ecdsa_public.pem")
+        cls.bob_path = str(PEMS / "ecdsa_private_unencrypted.pem")
+        cls.bob_enc_path = str(PEMS / "ecdsa_private_encrypted.pem")
+        cls.bob_pub_path = str(PEMS / "ecdsa_public.pem")
 
-        cls.carl_path = str(pems / "ed25519_private_unencrypted.pem")
-        cls.carl_enc_path = str(pems / "ed25519_private_encrypted.pem")
-        cls.carl_pub_path = str(pems / "ed25519_public.pem")
+        cls.carl_path = str(PEMS / "ed25519_private_unencrypted.pem")
+        cls.carl_enc_path = str(PEMS / "ed25519_private_encrypted.pem")
+        cls.carl_pub_path = str(PEMS / "ed25519_public.pem")
 
     @classmethod
     def tearDownClass(cls):
@@ -423,7 +422,6 @@ class TestInTotoSignToolWithDSSE(CliTestCase, TmpDirMixin, GPGKeysMixin):
         cls.set_up_test_dir()
         cls.set_up_gpg_keys()
 
-        pems = Path(__file__).parent / "pems"
         demo_dsse_files = Path(__file__).parent / "demo_dsse_files"
         layout_name = "demo.layout.template"
         link_name = "package.2f89b927.link"
@@ -435,17 +433,17 @@ class TestInTotoSignToolWithDSSE(CliTestCase, TmpDirMixin, GPGKeysMixin):
 
         cls.key_pw = "hunter2"
 
-        cls.alice_path = str(pems / "rsa_private_unencrypted.pem")
-        cls.alice_enc_path = str(pems / "rsa_private_encrypted.pem")
-        cls.alice_pub_path = str(pems / "rsa_public.pem")
+        cls.alice_path = str(PEMS / "rsa_private_unencrypted.pem")
+        cls.alice_enc_path = str(PEMS / "rsa_private_encrypted.pem")
+        cls.alice_pub_path = str(PEMS / "rsa_public.pem")
 
-        cls.bob_path = str(pems / "ecdsa_private_unencrypted.pem")
-        cls.bob_enc_path = str(pems / "ecdsa_private_encrypted.pem")
-        cls.bob_pub_path = str(pems / "ecdsa_public.pem")
+        cls.bob_path = str(PEMS / "ecdsa_private_unencrypted.pem")
+        cls.bob_enc_path = str(PEMS / "ecdsa_private_encrypted.pem")
+        cls.bob_pub_path = str(PEMS / "ecdsa_public.pem")
 
-        cls.carl_path = str(pems / "ed25519_private_unencrypted.pem")
-        cls.carl_enc_path = str(pems / "ed25519_private_encrypted.pem")
-        cls.carl_pub_path = str(pems / "ed25519_public.pem")
+        cls.carl_path = str(PEMS / "ed25519_private_unencrypted.pem")
+        cls.carl_enc_path = str(PEMS / "ed25519_private_encrypted.pem")
+        cls.carl_pub_path = str(PEMS / "ed25519_public.pem")
 
     @classmethod
     def tearDownClass(cls):
