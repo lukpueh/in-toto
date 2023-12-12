@@ -39,267 +39,6 @@ PEMS = Path(__file__).parent / "pems"
 SCRIPTS = Path(__file__).parent / "scripts"
 
 
-class TestInTotoVerifyTool(CliTestCase, TmpDirMixin):
-    """
-    Tests
-      - in_toto_verify's main() - requires sys.argv patching;
-      - in_toto_verify - calls verifylib.in_toto_verify and error logs/exits
-        in case of a raised Exception.
-
-    Uses in-toto demo supply chain link metadata files and basic layout for
-    verification:
-
-    Copies the basic layout for different test scenarios:
-      - signed layout
-      - multiple signed layout (using two project owner keys)
-    """
-
-    cli_main_func = staticmethod(in_toto_verify_main)
-
-    @classmethod
-    def setUpClass(cls):
-        """Creates and changes into temporary directory.
-        Copies demo files to temp dir...
-          - owner/functionary key pairs
-          - *.link metadata files
-          - layout template (not signed, no expiration date)
-          - final product
-
-        ...and dumps various layouts for different test scenarios
-        """
-
-        # Find demo files
-        demo_files = os.path.join(
-            os.path.dirname(os.path.realpath(__file__)), "demo_files"
-        )
-        # find where the scripts directory is located.
-        scripts_directory = os.path.join(
-            os.path.dirname(os.path.realpath(__file__)), "scripts"
-        )
-
-        cls.set_up_test_dir()
-
-        # Copy demo files to temp dir
-        for fn in os.listdir(demo_files):
-            shutil.copy(os.path.join(demo_files, fn), cls.test_dir)
-
-        shutil.copytree(scripts_directory, "scripts")
-
-        # Load layout template
-        layout_template = Metadata.load("demo.layout.template")
-
-        # Store layout paths to be used in tests
-        cls.layout_single_signed_path = "single-signed.layout"
-        cls.layout_double_signed_path = "double-signed.layout"
-
-        # Import layout signing keys
-        alice = import_rsa_privatekey_from_file("alice")
-        bob = import_rsa_privatekey_from_file("bob")
-        cls.alice_path = "alice.pub"
-        cls.bob_path = "bob.pub"
-
-        # dump a single signed layout
-        layout_template.sign(alice)
-        layout_template.dump(cls.layout_single_signed_path)
-        # dump a double signed layout
-        layout_template.sign(bob)
-        layout_template.dump(cls.layout_double_signed_path)
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.tear_down_test_dir()
-
-    def test_main_required_args(self):
-        """Test in-toto-verify CLI tool with required arguments."""
-        args = [
-            "--layout",
-            self.layout_single_signed_path,
-            "--layout-keys",
-            self.alice_path,
-        ]
-
-        self.assert_cli_sys_exit(args, 0)
-
-    def test_main_wrong_args(self):
-        """Test in-toto-verify CLI tool with wrong arguments."""
-        wrong_args_list = [
-            [],
-            ["--layout", self.layout_single_signed_path],
-            ["--key", self.alice_path],
-        ]
-
-        for wrong_args in wrong_args_list:
-            self.assert_cli_sys_exit(wrong_args, 2)
-
-    def test_main_multiple_keys(self):
-        """Test in-toto-verify CLI tool with multiple keys."""
-        args = [
-            "--layout",
-            self.layout_double_signed_path,
-            "--layout-keys",
-            self.alice_path,
-            self.bob_path,
-        ]
-        self.assert_cli_sys_exit(args, 0)
-
-    def test_main_failing_bad_layout_path(self):
-        """Test in-toto-verify CLI tool with bad layout path."""
-        args = ["-l", "not-a-path-to-a-layout", "-k", self.alice_path]
-        self.assert_cli_sys_exit(args, 1)
-
-    def test_main_link_dir(self):
-        """Test in-toto-verify CLI tool with explicit link dir."""
-
-        # Use current working directory explicitly to load links
-        args = [
-            "--layout",
-            self.layout_single_signed_path,
-            "--layout-keys",
-            self.alice_path,
-            "--link-dir",
-            ".",
-        ]
-        self.assert_cli_sys_exit(args, 0)
-
-        # Fail with an explicit link directory, where no links are found
-        args = [
-            "--layout",
-            self.layout_single_signed_path,
-            "--layout-keys",
-            self.alice_path,
-            "--link-dir",
-            "bad-link-dir",
-        ]
-        self.assert_cli_sys_exit(args, 1)
-
-
-class TestInTotoVerifyToolWithDSSE(CliTestCase, TmpDirMixin):
-    """
-    Tests
-      - in_toto_verify's main() - requires sys.argv patching;
-      - in_toto_verify - calls verifylib.in_toto_verify and error logs/exits
-        in case of a raised Exception.
-
-    Uses in-toto demo supply chain link metadata files and basic layout for
-    verification:
-
-    Copies the basic layout for different test scenarios:
-      - signed layout
-      - multiple signed layout (using two project owner keys)
-    """
-
-    cli_main_func = staticmethod(in_toto_verify_main)
-
-    @classmethod
-    def setUpClass(cls):
-        """Creates and changes into temporary directory.
-        Copies demo files to temp dir...
-          - owner/functionary key pairs
-          - *.link metadata files
-          - layout template (not signed, no expiration date)
-          - final product
-
-        ...and dumps various layouts for different test scenarios
-        """
-
-        # Find demo files
-        demo_files = os.path.join(
-            os.path.dirname(os.path.realpath(__file__)), "demo_files"
-        )
-
-        # Demo DSSE Metadata Files
-        demo_dsse_files = os.path.join(
-            os.path.dirname(os.path.realpath(__file__)), "demo_dsse_files"
-        )
-
-        # find where the scripts directory is located.
-        scripts_directory = os.path.join(
-            os.path.dirname(os.path.realpath(__file__)), "scripts"
-        )
-
-        cls.set_up_test_dir()
-
-        # Copy demo files to temp dir
-        for fn in os.listdir(demo_files):
-            shutil.copy(os.path.join(demo_files, fn), cls.test_dir)
-
-        for fn in os.listdir(demo_dsse_files):
-            shutil.copy(os.path.join(demo_dsse_files, fn), cls.test_dir)
-
-        shutil.copytree(scripts_directory, "scripts")
-
-        # Load layout template
-        layout_template = Metadata.load("demo.layout.template")
-
-        # Store layout paths to be used in tests
-        cls.layout_single_signed_path = "single-signed.layout"
-        cls.layout_double_signed_path = "double-signed.layout"
-
-        # Import layout signing keys
-        alice = import_rsa_privatekey_from_file("alice")
-        bob = import_rsa_privatekey_from_file("bob")
-        cls.alice_path = "alice.pub"
-        cls.bob_path = "bob.pub"
-
-        # dump a single signed layout
-        layout_template.create_signature(SSlibSigner(alice))
-        layout_template.dump(cls.layout_single_signed_path)
-        # dump a double signed layout
-        layout_template.create_signature(SSlibSigner(bob))
-        layout_template.dump(cls.layout_double_signed_path)
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.tear_down_test_dir()
-
-    def test_main_required_args(self):
-        """Test in-toto-verify CLI tool with required arguments."""
-        args = [
-            "--layout",
-            self.layout_single_signed_path,
-            "--layout-keys",
-            self.alice_path,
-        ]
-
-        self.assert_cli_sys_exit(args, 0)
-
-    def test_main_multiple_keys(self):
-        """Test in-toto-verify CLI tool with multiple keys."""
-        args = [
-            "--layout",
-            self.layout_double_signed_path,
-            "--layout-keys",
-            self.alice_path,
-            self.bob_path,
-        ]
-        self.assert_cli_sys_exit(args, 0)
-
-    def test_main_link_dir(self):
-        """Test in-toto-verify CLI tool with explicit link dir."""
-
-        # Use current working directory explicitly to load links
-        args = [
-            "--layout",
-            self.layout_single_signed_path,
-            "--layout-keys",
-            self.alice_path,
-            "--link-dir",
-            ".",
-        ]
-        self.assert_cli_sys_exit(args, 0)
-
-        # Fail with an explicit link directory, where no links are found
-        args = [
-            "--layout",
-            self.layout_single_signed_path,
-            "--layout-keys",
-            self.alice_path,
-            "--link-dir",
-            "bad-link-dir",
-        ]
-        self.assert_cli_sys_exit(args, 1)
-
-
 @unittest.skipIf(not have_gpg(), "gpg not found")
 class TestInTotoVerifyToolGPG(CliTestCase, TmpDirMixin, GPGKeysMixin):
     """Tests in-toto-verify like TestInTotoVerifyTool but with
@@ -417,6 +156,37 @@ class TestInTotoVerifySubjectPublicKeyInfoKeys(CliTestCase, TmpDirMixin):
             "--verification-keys",
         ] + self.public_key_paths
         self.assert_cli_sys_exit(args, 0)
+
+    def test_main_failing_bad_layout_path(self):
+        """Test in-toto-verify CLI tool with bad layout path."""
+        args = [
+            "--layout",
+            "not-a-path-to-a-layout",
+            "--verification-keys",
+        ] + self.public_key_paths
+        self.assert_cli_sys_exit(args, 1)
+
+    def test_main_link_dir(self):
+        """Test in-toto-verify CLI tool with explicit link dir."""
+        # Use current working directory explicitly to load links
+        args = [
+            "--layout",
+            "demo.layout",
+            "--link-dir",
+            ".",
+            "--verification-keys",
+        ] + self.public_key_paths
+        self.assert_cli_sys_exit(args, 0)
+
+        # Fail with an explicit link directory, where no links are found
+        args = [
+            "--layout",
+            "demo.layout",
+            "--link-dir",
+            "bad-link-dir",
+            "--verification-keys",
+        ] + self.public_key_paths
+        self.assert_cli_sys_exit(args, 1)
 
 
 class TestInTotoVerifySubjectPublicKeyInfoKeysAndUseDSSE(

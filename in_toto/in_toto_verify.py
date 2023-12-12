@@ -201,11 +201,11 @@ def main():
     LOG.setLevelVerboseOrQuiet(args.verbose, args.quiet)
 
     # For verifying at least one public key must be specified
-    if not (args.layout_keys or args.gpg or args.verification_keys):
+    if not (args.gpg or args.verification_keys):
         parser.print_help()
         parser.error(
             "wrong arguments: specify at least one layout verification key:"
-            " '--gpg id [id ...]' or '--verification-keys path [path ...]'."
+            " '--verification-keys path [path ...]' and/or '--gpg id [id ...]'."
         )
 
     try:
