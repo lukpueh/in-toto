@@ -38,11 +38,7 @@ from securesystemslib.exceptions import (
 from securesystemslib.signer import Key, Signature, Signer
 
 from in_toto.exceptions import InvalidMetadata, SignatureVerificationError
-from in_toto.formats import (
-    _check_public_key,
-    _check_signature,
-    _check_signing_key,
-)
+from in_toto.formats import _check_public_key, _check_signature
 from in_toto.models._signer import GPGSigner
 from in_toto.models.common import Signable, ValidationMixin
 from in_toto.models.layout import Layout

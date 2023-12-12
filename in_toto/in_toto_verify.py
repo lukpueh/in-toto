@@ -140,8 +140,11 @@ for which the public part can be found in the GPG keyring at '~/.gnupg'.
         metavar="<path>",
         nargs="+",
         help=(
-            "replacement for '--layout-keys' using a standard "
-            "subjectPublicKeyInfo/PEM format. TODO"
+            "paths to public key files used to verify the passed root layout's"
+            " signatures. Supported keytypes are rsa, ed25519, ecdsa (nistp256)"
+            " in a standard subjectPublicKeyInfo/PEM format. Passing at least"
+            " one key using '--verification-keys' and/or '--gpg' is required."
+            " For each passed key the layout must carry a valid signature."
         ),
     )
 
@@ -202,8 +205,7 @@ def main():
         parser.print_help()
         parser.error(
             "wrong arguments: specify at least one layout verification key:"
-            " '--layout-keys path [path ...]' or  '--gpg id [id ...]' or "
-            " '--verification-keys path [path ...]'."
+            " '--gpg id [id ...]' or '--verification-keys path [path ...]'."
         )
 
     try:

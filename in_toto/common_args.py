@@ -118,7 +118,7 @@ GPG_KWARGS = {
         "GPG keyid to sign the resulting link metadata.  When '--gpg' is"
         " passed without the keyid, the default GPG key is used. The keyid"
         " prefix is used as an infix for the link metadata filename, i.e."
-        " '<name>.<keyid prefix>.link'. Passing one of '--key' or '--gpg'"
+        " '<name>.<keyid prefix>.link'. Passing one of '--signing-key' or '--gpg'"
         " is required."
     ),
 }
