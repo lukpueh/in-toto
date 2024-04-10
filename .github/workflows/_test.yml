@@ -24,7 +24,7 @@ jobs:
             os: ubuntu-latest
             toxenv: lint
             experimental: false
-            retval: [0]
+            retval: 0
           - python-version: 3.x
             os: ubuntu-latest
             toxenv: with-sslib-main
