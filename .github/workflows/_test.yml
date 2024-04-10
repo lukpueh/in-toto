@@ -18,23 +18,22 @@ jobs:
         toxenv: [py]
         experimental: [false]
         retval: [0]
+        secs: 10
         include:
-          - python-version: '3.8'
-            os: ubuntu-latest
-            toxenv: lint
-            experimental: false
-            retval: 0
           - python-version: 3.x
             os: ubuntu-latest
             toxenv: with-sslib-main
             experimental: true
             retval: 1
+            secs: 0
 
     runs-on: ${{ matrix.os }}
 
     steps:
       - name: Run test
-        run: (exit ${{ matrix.retval }})
+        run: |
+          sleep ${{ matrix.secs }})
+          (exit ${{ matrix.retval }})
 
       # - name: Checkout in-toto
       #   uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633
