@@ -26,7 +26,6 @@ jobs:
             os: ubuntu-latest
             toxenv: with-sslib-main
             experimental: true
-            run: false
 
     runs-on: ${{ matrix.os }}
 
