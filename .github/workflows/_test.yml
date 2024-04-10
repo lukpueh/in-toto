@@ -18,7 +18,7 @@ jobs:
         os: [ubuntu-latest]
         toxenv: [py]
         experimental: [false]
-        retval: 0
+        retval: [0]
         include:
           # - python-version: '3.8'
           #   os: ubuntu-latest
