@@ -8,7 +8,6 @@ jobs:
   test:
     # continue-on-error: ${{ matrix.experimental }}
     strategy:
-      fail-fast: true
       # Run regular in-toto tests on each OS/Python combination, plus linters
       # on Linux/Python3.x only.
       matrix:
@@ -19,7 +18,7 @@ jobs:
         toxenv: [py]
         # experimental: [false]
         retval: [0]
-        secs: [10]
+        secs: [20]
         include:
           - python-version: 3.x
             os: ubuntu-latest
