@@ -31,9 +31,7 @@ jobs:
 
     steps:
       - name: Run test
-        run: |
-          sleep ${{ matrix.secs }})
-          (exit ${{ matrix.retval }})
+        run: sleep ${{ matrix.secs }} && (exit ${{ matrix.retval }})
 
       # - name: Checkout in-toto
       #   uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633
