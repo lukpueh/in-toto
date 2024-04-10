@@ -6,7 +6,7 @@ permissions: {}
 
 jobs:
   test:
-    continue-on-error: ${{ matrix.experimental }}
+    # continue-on-error: ${{ matrix.experimental }}
     strategy:
       fail-fast: false
       # Run regular in-toto tests on each OS/Python combination, plus linters
