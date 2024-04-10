@@ -19,21 +19,20 @@ jobs:
         toxenv: [py]
         experimental: [false]
         include:
-          - python-version: '3.8'
-            os: ubuntu-latest
-            toxenv: lint
-            experimental: false
+          # - python-version: '3.8'
+          #   os: ubuntu-latest
+          #   toxenv: lint
+          #   experimental: false
           - python-version: 3.x
             os: ubuntu-latest
             toxenv: with-sslib-main
             experimental: true
-            run: false
 
     runs-on: ${{ matrix.os }}
 
     steps:
       - name: Run test
-        run: true
+        run: (exit 1)
 
       # - name: Checkout in-toto
       #   uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633
