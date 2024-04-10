@@ -8,3 +8,11 @@ jobs:
   test:
     name: Test
     uses: ./.github/workflows/_test.yml
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Build
+        run: echo build
